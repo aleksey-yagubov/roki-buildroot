@@ -1,0 +1,18 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/opencv4: disable unused Orbbec backend
+
+The Roki image captures through libcamera and GStreamer directly. OpenCV
+videoio is disabled, but OpenCV still probes and enables its Orbbec 3D-camera
+support by default. Disable the unused backend explicitly to avoid carrying
+unneeded code and reporting it as available in cv2.getBuildInformation().
+
+--- a/package/opencv4/opencv4.mk
++++ b/package/opencv4/opencv4.mk
+@@ -197,6 +197,7 @@ OPENCV4_CONF_OPTS += \
+ 	-DWITH_OPENNI=OFF \
+ 	-DWITH_UNICAP=OFF \
+ 	-DWITH_VA=OFF \
++	-DWITH_OBSENSOR=OFF \
+ 	-DWITH_VA_INTEL=OFF \
+ 	-DWITH_VTK=OFF \
+ 	-DWITH_XINE=OFF

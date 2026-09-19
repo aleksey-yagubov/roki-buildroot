@@ -1,0 +1,31 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/opencv4-contrib: select aruco and ximgproc dependencies
+
+OpenCV 4.13 declares hard module dependencies that Buildroot's contrib
+symbols currently do not represent:
+
+  aruco    -> opencv_objdetect
+  ximgproc -> opencv_video
+
+Without them CMake accepts the requested contrib modules but disables them
+as unavailable. Select the required base modules so an OpenCV configuration
+with ArUco or ximgproc produces the corresponding Python bindings.
+
+--- a/package/opencv4-contrib/Config.in
++++ b/package/opencv4-contrib/Config.in
+@@ -18,6 +18,7 @@ config BR2_PACKAGE_OPENCV4_CONTRIB_LIB_ALPHAMAT
+ config BR2_PACKAGE_OPENCV4_CONTRIB_LIB_ARUCO
+ 	bool "aruco"
+ 	select BR2_PACKAGE_OPENCV4_LIB_CALIB3D
++	select BR2_PACKAGE_OPENCV4_LIB_OBJDETECT
+ 	help
+ 	  ArUco and ChArUco Markers -- Augmented reality ArUco marker
+ 	  and "ChARUco" markers where ArUco markers embedded inside the
+@@ -345,6 +346,7 @@ config BR2_PACKAGE_OPENCV4_CONTRIB_LIB_XFEATURES2D
+ 
+ config BR2_PACKAGE_OPENCV4_CONTRIB_LIB_XIMGPROC
+ 	bool "ximgproc"
++	select BR2_PACKAGE_OPENCV4_LIB_VIDEO
+ 	help
+ 	  Extended Image Processing -- Structured Forests / Domain
+ 	  Transform Filter / Guided Filter / Adaptive Manifold Filter

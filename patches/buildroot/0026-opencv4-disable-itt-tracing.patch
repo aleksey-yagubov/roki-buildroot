@@ -1,0 +1,17 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/opencv4: disable unused Intel ITT tracing
+
+OpenCV enables Intel ITT tracing by default on AArch64 and builds its bundled
+ittnotify library. ROKI does not use VTune or OpenCV tracing, so disable it to
+avoid compiling and linking the unused instrumentation.
+
+--- a/package/opencv4/opencv4.mk
++++ b/package/opencv4/opencv4.mk
+@@ -264,6 +264,7 @@ OPENCV4_DEPENDENCIES += host-pkgconf zlib
+ 
+ OPENCV4_CONF_OPTS += \
+ 	-DWITH_1394=OFF \
++	-DWITH_ITT=OFF \
+ 	-DWITH_CLP=OFF \
+ 	-DWITH_GDAL=OFF \
+ 	-DWITH_GPHOTO2=OFF \

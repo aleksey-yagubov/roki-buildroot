@@ -32,3 +32,59 @@ only when its required ALSA features are available.
 
 `global-patches/alsa-utils/0001-do-not-build-unused-alsactl.patch` removes
 `alsactl` and `alsaucm` from the upstream `SUBDIRS` list for this fixed image.
+
+## opencv4-contrib: module dependencies are missing from Kconfig
+
+### Reproducer
+
+Enable `BR2_PACKAGE_OPENCV4_CONTRIB_LIB_ARUCO` or
+`BR2_PACKAGE_OPENCV4_CONTRIB_LIB_XIMGPROC` without manually selecting their
+base OpenCV modules.
+
+### Actual result
+
+The generated OpenCV CMake configuration requests the contrib module, but
+OpenCV 4.13 disables it as unavailable:
+
+- `aruco` requires `opencv_objdetect`;
+- `ximgproc` requires `opencv_video`.
+
+Buildroot's contrib Kconfig symbols currently select neither dependency.
+The image consequently contains neither `cv2.aruco` nor `cv2.ximgproc`, even
+though both contrib symbols are enabled.
+
+### Expected result
+
+Selecting a contrib module should select all of its mandatory OpenCV module
+dependencies, so the requested module and its Python binding are built.
+
+### Proposed upstream fix
+
+Add `select BR2_PACKAGE_OPENCV4_LIB_OBJDETECT` to the `aruco` symbol and
+`select BR2_PACKAGE_OPENCV4_LIB_VIDEO` to the `ximgproc` symbol.
+
+### Local workaround
+
+`patches/buildroot/0022-opencv4-contrib-select-required-modules.patch`
+adds those selections. The Roki defconfig also lists the two base modules
+explicitly for readability.
+
+## opencv4: objdetect unnecessarily requires DNN and Protobuf
+
+### Actual result
+
+Buildroot makes `BR2_PACKAGE_OPENCV4_LIB_OBJDETECT` select `dnn` and `ml`,
+which in turn pulls Protobuf. In OpenCV 4.13, `objdetect` has only `core`,
+`imgproc`, and `calib3d` as mandatory dependencies; `dnn` is optional.
+
+### Impact
+
+ArUco requires `objdetect`, so enabling ArUco brings the whole unused DNN and
+Protobuf stack into the ROKI image.
+
+### Local workaround
+
+`patches/buildroot/0024-opencv4-objdetect-make-dnn-optional.patch` preserves
+the mandatory dependencies and removes the incorrect DNN and Protobuf
+requirements. The image explicitly disables unused OpenCV signal, Orbbec and
+Intel ITT tracing through patches `0023`, `0025`, and `0026`.

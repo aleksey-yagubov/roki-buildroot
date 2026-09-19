@@ -1,0 +1,19 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/opencv4: disable the unused signal module
+
+OpenCV 4.13 adds opencv_signal and enables it by default when Buildroot does
+not explicitly set BUILD_opencv_signal. The module is not used by the ROKI
+vision stack: frames come from libcamera and are processed with the image,
+calibration, ArUco and ximgproc modules. Disable it to keep the installed
+OpenCV set explicit and minimal.
+
+--- a/package/opencv4/opencv4.mk
++++ b/package/opencv4/opencv4.mk
+@@ -101,6 +101,7 @@ OPENCV4_CONF_OPTS += \
+ 	-DBUILD_opencv_shape=$(if $(BR2_PACKAGE_OPENCV4_LIB_SHAPE),ON,OFF) \
+ 	-DBUILD_opencv_stitching=$(if $(BR2_PACKAGE_OPENCV4_LIB_STITCHING),ON,OFF) \
+ 	-DBUILD_opencv_superres=$(if $(BR2_PACKAGE_OPENCV4_LIB_SUPERRES),ON,OFF) \
++	-DBUILD_opencv_signal=OFF \
+ 	-DBUILD_opencv_ts=$(if $(BR2_PACKAGE_OPENCV4_LIB_TS),ON,OFF) \
+ 	-DBUILD_opencv_video=$(if $(BR2_PACKAGE_OPENCV4_LIB_VIDEO),ON,OFF) \
+ 	-DBUILD_opencv_videoio=$(if $(BR2_PACKAGE_OPENCV4_LIB_VIDEOIO),ON,OFF) \

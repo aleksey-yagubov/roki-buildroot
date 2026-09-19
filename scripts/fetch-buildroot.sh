@@ -36,7 +36,16 @@ for patch_file in "$repo_root"/patches/buildroot/*.patch; do
     [ -e "$patch_file" ] || continue
     patch_marker="$tree/.roki-patches/$(basename "$patch_file").applied"
     if [ ! -f "$patch_marker" ]; then
-        patch -d "$tree" -p1 --batch < "$patch_file"
+        if patch -d "$tree" -p1 --dry-run --forward < "$patch_file"; then
+            patch -d "$tree" -p1 --forward < "$patch_file"
+        elif patch -d "$tree" -p1 --dry-run --reverse < "$patch_file"; then
+            # The tree was prepared before marker files were introduced.
+            # Record the patch without letting patch(1) apply it in reverse.
+            :
+        else
+            echo "Cannot apply Buildroot patch: $patch_file" >&2
+            exit 1
+        fi
         : > "$patch_marker"
     fi
 done
