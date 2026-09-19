@@ -81,37 +81,3 @@ sudo ./scripts/flash-roki-cm4.sh /dev/sdX output/images/roki-cm4.img
 Каждый GitHub release должен содержать два артефакта из одного commit:
 `roki-cm4.img` и `flash-roki-cm4.sh`.
 
-## Wi-Fi
-
-Так как `cfg80211` собран в ядро, `regulatory.db` встраивается через kernel
-extra firmware: cfg80211 запрашивает базу на `late_initcall`, ещё до
-монтирования rootfs. Проверка подписи regdb отключена
-(`CONFIG_CFG80211_REQUIRE_SIGNED_REGDB=n`), поэтому `regulatory.db.p7s` и
-kernel key/certificate subsystem для неё не нужны. Регдомен — `RU`: он
-указывается ранним параметром ядра `cfg80211.ieee80211_regdom=RU` и
-подтверждается Dinit-сервисом `iw reg set RU` до запуска IWD.
-`wireless-regdb` в rootfs остаётся необязательной копией для диагностики и
-будущего обновления, но не участвует в первом применении базы. Для IWD
-используется `dbus-broker`, а не классический `dbus-daemon`.
-
-## Звук
-
-Звук выводится через два MAX98357A с overlay `max98357a,sdmode-pin=4`.
-GPIO4 управляет входом SD_MODE усилителей; ALSA-карта называется `MAX98357A`.
-Нужен актуальный eSpeak NG с алиасом `/usr/bin/espeak`, ALSA backend и данными
-английского и русского языков. `alsa-utils` добавляется только для диагностики,
-не как runtime-зависимость.
-
-## Камера
-
-Picamera2 пока не включаем: код должен перейти на прямое использование
-libcamera из Python. Отдельная обязательная цель — получить в Python счётчик
-принятых кадров MIPI CSI-2 receiver на Raspberry Pi и использовать его для
-синхронизации кадров камеры с данными IMU
-
-Для образа потребуются Raspberry Pi libcamera с Arducam Pivariety runtime,
-OpenCV, GStreamer, `msgpack`, `pyserial`, `roki-mb-interface` из GitHub и
-Starkit из PyPI. Runtime RTSP требует Python GI, GLib, `GstRtspServer`,
-`v4l2jpegenc` и JPEG RTP payloader. Также нужны NumPy, PyYAML и python-evdev.
-Текущая камера всё ещё импортирует Picamera2, поэтому его можно убрать только
-вместе с переходом к прямому Python API libcamera.
