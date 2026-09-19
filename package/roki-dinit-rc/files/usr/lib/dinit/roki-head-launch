@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+roki_dir=/opt/roki/Roki_2_Soccer
+startup_dir=/opt/roki/Startup
+export PYTHONUNBUFFERED=1
+
+cd "$roki_dir"
+/usr/bin/python -u "$startup_dir/Start_Script.py"
+exec /usr/bin/python -u "$roki_dir/main.py"

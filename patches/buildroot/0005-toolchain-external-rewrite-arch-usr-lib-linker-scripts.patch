@@ -1,0 +1,17 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] toolchain: rewrite Arch linker scripts under usr/lib
+
+The external Arch sysroot uses lib as a symlink to usr/lib. GNU find does not
+follow that symlink, so the existing rewrite step misses glibc linker scripts.
+Search both paths before rewriting absolute linker-script references.
+
+---
+ toolchain/helpers.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/toolchain/helpers.mk b/toolchain/helpers.mk
+--- a/toolchain/helpers.mk
++++ b/toolchain/helpers.mk
+@@ -133,1 +133,1 @@
+-	for linker_script in $$(find $(STAGING_DIR)/$${ARCH_LIB_DIR} -maxdepth 1 -type f -name '*.so'); do \
++	for linker_script in $$(find $(STAGING_DIR)/$${ARCH_LIB_DIR} $(STAGING_DIR)/usr/$${ARCH_LIB_DIR} -maxdepth 1 -type f -name '*.so'); do \

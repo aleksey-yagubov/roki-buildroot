@@ -1,0 +1,4 @@
+#!/bin/sh
+
+stty sane 2>/dev/null || true
+exec clear

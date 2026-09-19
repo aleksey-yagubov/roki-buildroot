@@ -1,0 +1,529 @@
+diff --git a/include/libcamera/internal/yaml_parser.h b/include/libcamera/internal/yaml_parser.h
+index 9d4ba0a1..2b2abcb7 100644
+--- a/include/libcamera/internal/yaml_parser.h
++++ b/include/libcamera/internal/yaml_parser.h
+@@ -8,6 +8,7 @@
+ #pragma once
+ 
+ #include <memory>
++#include <string>
+ 
+ #include "libcamera/internal/value_node.h"
+ 
+@@ -19,6 +20,7 @@ class YamlParser final
+ {
+ public:
+ 	static std::unique_ptr<ValueNode> parse(File &file);
++	static std::unique_ptr<ValueNode> parse(const std::string &content);
+ };
+ 
+ } /* namespace libcamera */
+diff --git a/include/libcamera/ipa/raspberrypi.mojom b/include/libcamera/ipa/raspberrypi.mojom
+index 1b7e0358..443c2d9a 100644
+--- a/include/libcamera/ipa/raspberrypi.mojom
++++ b/include/libcamera/ipa/raspberrypi.mojom
+@@ -13,6 +13,10 @@ const uint32 MaxLsGridSize = 0x8000;
+ 
+ struct SensorConfig {
+ 	uint32 sensorMetadata;
++	uint32 exposureDelay;
++	uint32 gainDelay;
++	uint32 vblankDelay;
++	uint32 hblankDelay;
+ };
+ 
+ struct InitParams {
+diff --git a/src/ipa/rpi/cam_helper/cam_helper.cpp b/src/ipa/rpi/cam_helper/cam_helper.cpp
+index a78db9c1..313dc22f 100644
+--- a/src/ipa/rpi/cam_helper/cam_helper.cpp
++++ b/src/ipa/rpi/cam_helper/cam_helper.cpp
+@@ -9,6 +9,7 @@
+ 
+ #include <limits>
+ #include <map>
++#include <regex>
+ #include <string.h>
+ 
+ #include "libcamera/internal/v4l2_videodevice.h"
+@@ -37,20 +38,36 @@ std::map<std::string, CamHelperCreateFunc> &camHelpers()
+ 
+ CamHelper *CamHelper::create(std::string const &camName)
+ {
++	std::regex i2cRegex{ " ([0-9]+)-([0-9a-f]{4})" };
++	std::smatch match;
++	int16_t i2cBus = -1;
++	int16_t i2cAddress = -1;
++	std::string model = camName;
++
++	if (std::regex_search(camName, match, i2cRegex)) {
++		model = camName.substr(0, camName.find(' '));
++		i2cBus = std::stoul(match[1], nullptr, 10);
++		i2cAddress = std::stoul(match[2], nullptr, 16);
++	}
++
+ 	/*
+ 	 * CamHelpers get registered by static RegisterCamHelper
+ 	 * initialisers.
+ 	 */
+ 	for (auto &p : camHelpers()) {
+-		if (camName.find(p.first) != std::string::npos)
+-			return p.second();
++		if (model.find(p.first) != std::string::npos) {
++			CamHelper *helper = p.second();
++			helper->setI2C(i2cBus, i2cAddress);
++			return helper;
++		}
+ 	}
+ 
+ 	return nullptr;
+ }
+ 
+ CamHelper::CamHelper(std::unique_ptr<MdParser> parser, unsigned int frameIntegrationDiff)
+-	: parser_(std::move(parser)), frameIntegrationDiff_(frameIntegrationDiff)
++	: parser_(std::move(parser)), i2cBus_(-1), i2cAddress_(-1),
++	  frameIntegrationDiff_(frameIntegrationDiff)
+ {
+ }
+ 
+@@ -250,6 +267,32 @@ void CamHelper::populateMetadata([[maybe_unused]] const MdParser::RegisterMap &r
+ {
+ }
+ 
++std::string CamHelper::getTuningData()
++{
++	return {};
++}
++
++void CamHelper::setI2C(int16_t i2cBus, int16_t i2cAddress)
++{
++	i2cBus_ = i2cBus;
++	i2cAddress_ = i2cAddress;
++}
++
++int CamHelper::getDelays(int &exposureDelay, int &gainDelay,
++			 int &vblankDelay, int &hblankDelay) const
++{
++	exposureDelay = 0;
++	gainDelay = 0;
++	vblankDelay = 0;
++	hblankDelay = 0;
++	return false;
++}
++
++void CamHelper::setPlatformTarget(std::string target)
++{
++	target_ = std::move(target);
++}
++
+ RegisterCamHelper::RegisterCamHelper(char const *camName,
+ 				     CamHelperCreateFunc createFunc)
+ {
+diff --git a/src/ipa/rpi/cam_helper/cam_helper.h b/src/ipa/rpi/cam_helper/cam_helper.h
+index 4a826690..54591a74 100644
+--- a/src/ipa/rpi/cam_helper/cam_helper.h
++++ b/src/ipa/rpi/cam_helper/cam_helper.h
+@@ -99,6 +99,11 @@
+ 	virtual unsigned int mistrustMetadataStartup() const;
+ 	virtual unsigned int mistrustMetadataModeSwitch() const;
+ 	virtual unsigned int getMinDebinFactor() const;
++	virtual std::string getTuningData();
++	virtual void setI2C(int16_t i2cBus, int16_t i2cAddress);
++	virtual int getDelays(int &exposureDelay, int &gainDelay,
++			      int &vblankDelay, int &hblankDelay) const;
++	virtual void setPlatformTarget(std::string target);
+ 
+ protected:
+ 	void parseEmbeddedData(libcamera::Span<const uint8_t> buffer,
+@@ -109,6 +114,9 @@
+ 	std::unique_ptr<MdParser> parser_;
+ 	CameraMode mode_;
+ 	Controller::HardwareConfig hwConfig_;
++	int16_t i2cBus_;
++	int16_t i2cAddress_;
++	std::string target_;
+ 
+ private:
+ 	/*
+diff --git a/src/ipa/rpi/cam_helper/cam_helper_arducam.cpp b/src/ipa/rpi/cam_helper/cam_helper_arducam.cpp
+new file mode 100644
+index 00000000..0fc5eccb
+--- /dev/null
++++ b/src/ipa/rpi/cam_helper/cam_helper_arducam.cpp
+@@ -0,0 +1,122 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Camera helper for Arducam Pivariety sensors.
++ *
++ * The libcamera glue is open, while the MCU tuning-data protocol is provided
++ * by Arducam's small libarducam_pivariety runtime library.
++ */
++
++#include <cstdio>
++
++#include "cam_helper.h"
++
++#include "arducam/arducam_pivariety.hpp"
++
++using namespace RPiController;
++
++class CamHelperArducam : public CamHelper
++{
++public:
++	CamHelperArducam();
++	uint32_t gainCode(double gain) const override;
++	double gain(uint32_t gainCode) const override;
++	int getDelays(int &exposureDelay, int &gainDelay,
++		      int &vblankDelay, int &hblankDelay) const override;
++	unsigned int hideFramesModeSwitch() const override;
++	unsigned int mistrustMetadataStartup() const override;
++	unsigned int mistrustMetadataModeSwitch() const override;
++	std::string getTuningData() override;
++	void setI2C(int16_t i2cBus, int16_t i2cAddress) override;
++
++private:
++	static constexpr int frameIntegrationDiff = 4;
++
++	int exposureDelay_ = 2;
++	int gainDelay_ = 2;
++	int vblankDelay_ = 2;
++	int hideFramesModeSwitch_ = 2;
++	std::string tuningData_;
++};
++
++CamHelperArducam::CamHelperArducam()
++	: CamHelper(nullptr, frameIntegrationDiff)
++{
++}
++
++void CamHelperArducam::setI2C(int16_t i2cBus, int16_t i2cAddress)
++{
++	CamHelper::setI2C(i2cBus, i2cAddress);
++
++	/*
++	 * The Pivariety bridge is on the primary controller, i2c-0. Use it when
++	 * libcamera cannot derive an I2C bus number from the media subdevice.
++	 */
++	int bus = i2cBus_ != -1 ? i2cBus_ : 0;
++
++	Arducam::ArducamUtils arducam(bus);
++	tuningData_ = arducam.readJson();
++
++	if (!arducam.convert(tuningData_)) {
++		std::fprintf(stderr, "Arducam Pivariety camera has old tuning data format\n");
++		arducam.writeJson(tuningData_);
++	}
++
++	exposureDelay_ = DEFAULT(arducam.readInfo(Arducam::EXPOSURE_DELAY), 2);
++	gainDelay_ = DEFAULT(arducam.readInfo(Arducam::GAIN_DELAY), 2);
++	vblankDelay_ = DEFAULT(arducam.readInfo(Arducam::VBLANK_DELAY), 2);
++
++	uint32_t version = arducam.getVersion();
++	if (version != UNKNOWN && (version >> 16) >= 1 && (version & 0xffff) > 1)
++		hideFramesModeSwitch_ = DEFAULT(arducam.readInfo(Arducam::HIDE_FRAMES), 2);
++}
++
++uint32_t CamHelperArducam::gainCode(double gain) const
++{
++	return static_cast<uint32_t>(gain * 100);
++}
++
++double CamHelperArducam::gain(uint32_t gainCode) const
++{
++	return static_cast<double>(gainCode) / 100.0;
++}
++
++int CamHelperArducam::getDelays(int &exposureDelay, int &gainDelay,
++				int &vblankDelay, int &hblankDelay) const
++{
++	exposureDelay = exposureDelay_;
++	gainDelay = gainDelay_;
++	vblankDelay = vblankDelay_;
++	hblankDelay = 2;
++	return true;
++}
++
++unsigned int CamHelperArducam::hideFramesModeSwitch() const
++{
++	return hideFramesModeSwitch_;
++}
++
++unsigned int CamHelperArducam::mistrustMetadataStartup() const
++{
++	return 2;
++}
++
++unsigned int CamHelperArducam::mistrustMetadataModeSwitch() const
++{
++	return 2;
++}
++
++std::string CamHelperArducam::getTuningData()
++{
++	if (target_ == "pisp")
++		Arducam::ArducamUtils::convertPISP(tuningData_);
++
++	return tuningData_;
++}
++
++static CamHelper *create()
++{
++	return new CamHelperArducam();
++}
++
++static RegisterCamHelper reg("arducam-pivariety", &create);
++static RegisterCamHelper regAlias("arducam_pivariety", &create);
+diff --git a/src/ipa/rpi/cam_helper/meson.build b/src/ipa/rpi/cam_helper/meson.build
+index c1eac689..79ff190c 100644
+--- a/src/ipa/rpi/cam_helper/meson.build
++++ b/src/ipa/rpi/cam_helper/meson.build
+@@ -2,6 +2,7 @@
+ 
+ rpi_ipa_cam_helper_sources = files([
+     'cam_helper.cpp',
++    'cam_helper_arducam.cpp',
+     'cam_helper_ov5647.cpp',
+     'cam_helper_imx219.cpp',
+     'cam_helper_imx283.cpp',
+@@ -28,6 +29,7 @@ subdir('imx500_tensor_parser')
+ 
+ rpi_ipa_cam_helper_deps = [
+     libcamera_private,
++    dependency('arducam_pivariety'),
+ ]
+ 
+ rpi_ipa_cam_helper_lib = static_library('rpi_ipa_cam_helper', rpi_ipa_cam_helper_sources,
+diff --git a/src/ipa/rpi/common/ipa_base.cpp b/src/ipa/rpi/common/ipa_base.cpp
+index 49d49658..465b1dd6 100644
+--- a/src/ipa/rpi/common/ipa_base.cpp
++++ b/src/ipa/rpi/common/ipa_base.cpp
+@@ -152,17 +152,33 @@ int32_t IpaBase::init(const IPASettings &settings, const InitParams &params, Ini
+ 				   << settings.sensorModel;
+ 		return -EINVAL;
+ 	}
++	helper_->setPlatformTarget("vc4");
+ 
+ 	/* Pass out the sensor metadata to the pipeline handler */
+ 	int sensorMetadata = helper_->sensorEmbeddedDataPresent();
+ 	result->sensorConfig.sensorMetadata = sensorMetadata;
+ 
++	int exposureDelay, gainDelay, vblankDelay, hblankDelay;
++	if (helper_->getDelays(exposureDelay, gainDelay, vblankDelay, hblankDelay)) {
++		result->sensorConfig.exposureDelay = exposureDelay;
++		result->sensorConfig.gainDelay = gainDelay;
++		result->sensorConfig.vblankDelay = vblankDelay;
++		result->sensorConfig.hblankDelay = hblankDelay;
++	}
++
+ 	/* Load the tuning file for this sensor. */
+-	int ret = controller_.read(settings.configurationFile.c_str());
++	std::string tuningData = helper_->getTuningData();
++	int ret = tuningData.empty()
++		? controller_.read(settings.configurationFile.c_str())
++		: controller_.read(tuningData);
+ 	if (ret) {
+-		LOG(IPARPI, Error)
+-			<< "Failed to load tuning data file "
+-			<< settings.configurationFile;
++		if (tuningData.empty())
++			LOG(IPARPI, Error)
++				<< "Failed to load tuning data file "
++				<< settings.configurationFile;
++		else
++			LOG(IPARPI, Error)
++				<< "Failed to load Arducam Pivariety tuning data";
+ 		return ret;
+ 	}
+ 
+diff --git a/src/ipa/rpi/controller/controller.cpp b/src/ipa/rpi/controller/controller.cpp
+index 168ab649..18800abd 100644
+--- a/src/ipa/rpi/controller/controller.cpp
++++ b/src/ipa/rpi/controller/controller.cpp
+@@ -143,6 +143,47 @@ int Controller::read(char const *filename)
+ 	return 0;
+ }
+ 
++int Controller::read(const std::string &content)
++{
++	std::unique_ptr<ValueNode> root = YamlParser::parse(content);
++	if (!root)
++		return -EINVAL;
++
++	double version = (*root)["version"].get<double>(1.0);
++	target_ = (*root)["target"].get<std::string>("bcm2835");
++
++	if (version < 2.0) {
++		LOG(RPiController, Warning)
++			<< "This format of the tuning file will be deprecated soon!"
++			<< " Please use the convert_tuning.py utility to update to version 2.0.";
++
++		for (const auto &[key, value] : root->asDict()) {
++			int ret = createAlgorithm(key, value);
++			if (ret)
++				return ret;
++		}
++	} else if (version < 3.0) {
++		if (!root->contains("algorithms")) {
++			LOG(RPiController, Error)
++				<< "Tuning data string does not have an \"algorithms\" list!";
++			return -EINVAL;
++		}
++
++		for (const auto &rootAlgo : (*root)["algorithms"].asList())
++			for (const auto &[key, value] : rootAlgo.asDict()) {
++				int ret = createAlgorithm(key, value);
++				if (ret)
++					return ret;
++			}
++	} else {
++		LOG(RPiController, Error)
++			<< "Unrecognised version " << version;
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
+ int Controller::createAlgorithm(const std::string &name, const ValueNode &params)
+ {
+ 	/* Any algorithm may be disabled by setting "enabled" to false. */
+diff --git a/src/ipa/rpi/controller/controller.h b/src/ipa/rpi/controller/controller.h
+index d36bca04..122545d7 100644
+--- a/src/ipa/rpi/controller/controller.h
++++ b/src/ipa/rpi/controller/controller.h
+@@ -90,6 +90,7 @@ public:
+ 	Controller();
+ 	~Controller();
+ 	int read(char const *filename);
++	int read(const std::string &content);
+ 	void initialise();
+ 	void switchMode(CameraMode const &cameraMode, Metadata *metadata);
+ 	void prepare(Metadata *imageMetadata);
+diff --git a/src/libcamera/pipeline/rpi/common/pipeline_base.cpp b/src/libcamera/pipeline/rpi/common/pipeline_base.cpp
+index f6ef8a3b..31eb8ea3 100644
+--- a/src/libcamera/pipeline/rpi/common/pipeline_base.cpp
++++ b/src/libcamera/pipeline/rpi/common/pipeline_base.cpp
+@@ -835,13 +835,23 @@ int PipelineHandlerBase::registerCamera(std::unique_ptr<RPi::CameraData> &camera
+ 	 * Setup our delayed control writer with the sensor default
+ 	 * gain and exposure delays. Mark VBLANK for priority write.
+ 	 */
+-	const CameraSensorProperties::SensorDelays &delays = data->sensor_->sensorDelays();
+-	std::unordered_map<uint32_t, RPi::DelayedControls::ControlParams> params = {
+-		{ V4L2_CID_ANALOGUE_GAIN, { delays.gainDelay, false } },
+-		{ V4L2_CID_EXPOSURE, { delays.exposureDelay, false } },
+-		{ V4L2_CID_HBLANK, { delays.hblankDelay, false } },
+-		{ V4L2_CID_VBLANK, { delays.vblankDelay, true } }
+-	};
++	std::unordered_map<uint32_t, RPi::DelayedControls::ControlParams> params;
++	if (data->sensor_->model() == "arducam-pivariety") {
++		params = {
++			{ V4L2_CID_ANALOGUE_GAIN, { result.sensorConfig.gainDelay, false } },
++			{ V4L2_CID_EXPOSURE, { result.sensorConfig.exposureDelay, false } },
++			{ V4L2_CID_HBLANK, { result.sensorConfig.hblankDelay, false } },
++			{ V4L2_CID_VBLANK, { result.sensorConfig.vblankDelay, true } }
++		};
++	} else {
++		const CameraSensorProperties::SensorDelays &delays = data->sensor_->sensorDelays();
++		params = {
++			{ V4L2_CID_ANALOGUE_GAIN, { delays.gainDelay, false } },
++			{ V4L2_CID_EXPOSURE, { delays.exposureDelay, false } },
++			{ V4L2_CID_HBLANK, { delays.hblankDelay, false } },
++			{ V4L2_CID_VBLANK, { delays.vblankDelay, true } }
++		};
++	}
+ 	data->delayedCtrls_ = std::make_unique<RPi::DelayedControls>(data->sensor_->device(), params);
+ 	data->sensorMetadata_ = result.sensorConfig.sensorMetadata;
+ 
+diff --git a/src/libcamera/sensor/camera_sensor_properties.cpp b/src/libcamera/sensor/camera_sensor_properties.cpp
+index efa79463..f3a1e3f1 100644
+--- a/src/libcamera/sensor/camera_sensor_properties.cpp
++++ b/src/libcamera/sensor/camera_sensor_properties.cpp
+@@ -81,6 +81,11 @@ LOG_DEFINE_CATEGORY(CameraSensorProperties)
+ const CameraSensorProperties *CameraSensorProperties::get(const std::string &sensor)
+ {
+ 	static const std::map<std::string, const CameraSensorProperties> sensorProps = {
++		{ "arducam-pivariety", {
++			.unitCellSize = {},
++			.testPatternModes = {},
++			.sensorDelays = {},
++		} },
+ 		{ "ar0144", {
+ 			.unitCellSize = { 3000, 3000 },
+ 			.testPatternModes = {
+diff --git a/src/libcamera/yaml_parser.cpp b/src/libcamera/yaml_parser.cpp
+index 64b74376..a7278b5f 100644
+--- a/src/libcamera/yaml_parser.cpp
++++ b/src/libcamera/yaml_parser.cpp
+@@ -35,6 +35,7 @@ public:
+ 	~YamlParserContext();
+ 
+ 	int init(File &file);
++	int init(const std::string &content);
+ 	int parseContent(ValueNode &valueNode);
+ 
+ private:
+@@ -59,6 +60,7 @@ private:
+ 
+ 	bool parserValid_;
+ 	yaml_parser_t parser_;
++	std::string sourceName_;
+ };
+ 
+ /**
+@@ -105,6 +107,23 @@ int YamlParserContext::init(File &file)
+ 	}
+ 	parserValid_ = true;
+ 	yaml_parser_set_input(&parser_, &YamlParserContext::yamlRead, &file);
++	sourceName_ = file.fileName();
++
++	return 0;
++}
++
++int YamlParserContext::init(const std::string &content)
++{
++	/* yaml_parser_initialize returns 1 when it succeededs */
++	if (!yaml_parser_initialize(&parser_)) {
++		LOG(YamlParser, Error) << "Failed to initialize YAML parser";
++		return -EINVAL;
++	}
++	parserValid_ = true;
++	yaml_parser_set_input_string(&parser_,
++				     reinterpret_cast<const unsigned char *>(content.data()),
++				     content.size());
++	sourceName_ = "<memory>";
+ 
+ 	return 0;
+ }
+@@ -137,9 +156,7 @@ YamlParserContext::EventPtr YamlParserContext::nextEvent()
+ 
+ 	/* yaml_parser_parse returns 1 when it succeeds */
+ 	if (!yaml_parser_parse(&parser_, event.get())) {
+-		File *file = static_cast<File *>(parser_.read_handler_data);
+-
+-		LOG(YamlParser, Error) << file->fileName() << ":"
++		LOG(YamlParser, Error) << sourceName_ << ":"
+ 				       << parser_.problem_mark.line << ":"
+ 				       << parser_.problem_mark.column << " "
+ 				       << parser_.problem << " "
+@@ -397,4 +414,22 @@ std::unique_ptr<ValueNode> YamlParser::parse(File &file)
+ 	return root;
+ }
+ 
++std::unique_ptr<ValueNode> YamlParser::parse(const std::string &content)
++{
++	YamlParserContext context;
++
++	if (context.init(content))
++		return nullptr;
++
++	std::unique_ptr<ValueNode> root = std::make_unique<ValueNode>();
++
++	if (context.parseContent(*root)) {
++		LOG(YamlParser, Error)
++			<< "Failed to parse YAML content from memory";
++		return nullptr;
++	}
++
++	return root;
++}
++
+ } /* namespace libcamera */

@@ -1,0 +1,56 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] roki: omit isolated IPA IPC implementation
+
+The image has one trusted, in-process VC4 IPA. Do not generate the isolated
+proxy implementation or compile its IPC, process and serialization support.
+The VC4 pipeline configuration examples are not runtime inputs and are omitted.
+
+---
+ src/libcamera/meson.build                         | 6 ------
+ src/libcamera/pipeline/rpi/vc4/meson.build        | 1 -
+ .../module_ipa_proxy.cpp.tmpl                     | 2 ++
+ .../module_ipa_proxy.h.tmpl                       | 5 +----
+ 4 files changed, 4 insertions(+), 10 deletions(-)
+
+diff --git a/src/libcamera/meson.build b/src/libcamera/meson.build
+--- a/src/libcamera/meson.build
++++ b/src/libcamera/meson.build
+@@ -25 +24,0 @@ libcamera_internal_sources = files([
+-    'control_serializer.cpp',
+@@ -36 +34,0 @@ libcamera_internal_sources = files([
+-    'ipa_data_serializer.cpp',
+@@ -41,3 +38,0 @@ libcamera_internal_sources = files([
+-    'ipc_pipe.cpp',
+-    'ipc_pipe_unixsocket.cpp',
+-    'ipc_unixsocket.cpp',
+@@ -50 +46,0 @@ libcamera_internal_sources = files([
+-    'process.cpp',
+diff --git a/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.h.tmpl b/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.h.tmpl
+--- a/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.h.tmpl
++++ b/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.h.tmpl
+@@ -107,6 +103,7 @@ class {{proxy_name}}Threaded : public {{proxy_name}}
+ 	std::unique_ptr<{{interface_name}}> ipa_;
+ };
+ 
++{% if false %}
+ class {{proxy_name}}Isolated : public {{proxy_name}}
+ {
+ public:
+@@ -140 +141,2 @@
++{% endif %}
+ {%- if has_namespace %}
+diff --git a/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.cpp.tmpl b/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.cpp.tmpl
+--- a/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.cpp.tmpl
++++ b/utils/codegen/ipc/generators/libcamera_templates/module_ipa_proxy.cpp.tmpl
+@@ -126,5 +126,6 @@ void {{proxy_name}}Threaded::{{method.mojom_name}}Handler(
+ {% endfor %}
+ 
++{% if false %}
+ /* ========================================================================== */
+ 
+ {{proxy_name}}Isolated::{{proxy_name}}Isolated(IPAModule *ipam, const CameraManager &cm)
+@@ -240 +241,2 @@
++{% endif %}
+ {%- if has_namespace %}
+-- 
+2.51.0

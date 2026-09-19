@@ -1,0 +1,39 @@
+From: Roki Buildroot <noreply@roki.local>
+Subject: [PATCH] dinit: keep standard descriptors valid without a console
+
+When dinit runs as PID 1 it tries to attach standard input/output/error to
+/dev/console. With `console=null`, opening that device can fail. The remaining
+closed file descriptors may then be re-used by the control socket while dinit
+still registers fd 0 as its console input watcher, preventing normal boot.
+
+Use /dev/null for the relevant descriptors when the kernel console is absent.
+This keeps the appliance headless without routing a serial console to the
+board MCU.
+
+---
+ src/dinit.cc | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/dinit.cc b/src/dinit.cc
+index 39e3f6e..8b74a1c 100644
+--- a/src/dinit.cc
++++ b/src/dinit.cc
+@@ -501,10 +501,16 @@ int dinit_main(int argc, char **argv)
+     if (am_system_mgr) {
+         // setup STDIN, STDOUT, STDERR so that we can use them
+         int onefd = open("/dev/console", O_RDONLY, 0);
++        if (onefd == -1) {
++            onefd = open("/dev/null", O_RDONLY, 0);
++        }
+         if (onefd != -1) {
+             dup2(onefd, 0);
+         }
+         int twofd = open("/dev/console", O_RDWR, 0);
++        if (twofd == -1) {
++            twofd = open("/dev/null", O_WRONLY, 0);
++        }
+         if (twofd != -1) {
+             dup2(twofd, 1);
+             dup2(twofd, 2);
+-- 
+2.51.0

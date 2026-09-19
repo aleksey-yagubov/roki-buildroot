@@ -1,0 +1,5 @@
+type = scripted
+command = /usr/lib/dinit/hostname
+restart = false
+# /proc is sufficient to set the kernel hostname; /etc/hostname is immutable.
+depends-on = pseudofs

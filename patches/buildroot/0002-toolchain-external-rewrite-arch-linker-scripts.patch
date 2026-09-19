@@ -1,0 +1,20 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] toolchain: make Arch linker scripts sysroot-relative
+
+Arch glibc linker scripts refer to /lib with absolute paths. Convert those
+paths to GNU ld sysroot-relative paths while copying the external sysroot.
+
+---
+ toolchain/helpers.mk | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/toolchain/helpers.mk b/toolchain/helpers.mk
+--- a/toolchain/helpers.mk
++++ b/toolchain/helpers.mk
+@@ -133,1 +133,6 @@
++	for linker_script in $$(find $(STAGING_DIR)/$${ARCH_LIB_DIR} -maxdepth 1 -type f -name '*.so'); do \
++		if grep -q 'GROUP[[:space:]]*(' "$$linker_script"; then \
++			sed -i -E 's@ =?/@ =/@g' "$$linker_script"; \
++		fi; \
++	done ; \
+ 	for link in $$(find $$(STAGING_DIR) -type l); do \

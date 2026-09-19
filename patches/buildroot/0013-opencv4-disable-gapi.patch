@@ -1,0 +1,28 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] package/opencv4: disable unused G-API module
+
+G-API is enabled by OpenCV by default but Buildroot's selected minimal module
+set intentionally excludes videoio. Recent OpenCV Python bindings include G-API
+headers which unconditionally include videoio headers, so this combination does
+not compile. The Roki image does not use G-API; disable it explicitly.
+
+---
+ package/opencv4/opencv4.mk | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/package/opencv4/opencv4.mk b/package/opencv4/opencv4.mk
+index c4c2fa0ca4..070328567a 100644
+--- a/package/opencv4/opencv4.mk
++++ b/package/opencv4/opencv4.mk
+@@ -91,6 +91,9 @@ OPENCV4_CONF_OPTS += \
+ 	-DBUILD_opencv_features2d=$(if $(BR2_PACKAGE_OPENCV4_LIB_FEATURES2D),ON,OFF) \
+	-DBUILD_opencv_flann=$(if $(BR2_PACKAGE_OPENCV4_LIB_FLANN),ON,OFF) \
+	-DBUILD_opencv_highgui=$(if $(BR2_PACKAGE_OPENCV4_LIB_HIGHGUI),ON,OFF) \
++	-DBUILD_opencv_gapi=OFF \
++	-DWITH_ADE=OFF \
++	-DWITH_KLEIDICV=OFF \
+	-DBUILD_opencv_imgcodecs=$(if $(BR2_PACKAGE_OPENCV4_LIB_IMGCODECS),ON,OFF) \
+ 	-DBUILD_opencv_imgproc=$(if $(BR2_PACKAGE_OPENCV4_LIB_IMGPROC),ON,OFF) \
+ 	-DBUILD_opencv_java=OFF \
+-- 
+2.47.3

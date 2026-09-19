@@ -1,0 +1,61 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] build: use system pybind11 and disable tests
+
+Buildroot provides pybind11 separately. The bundled GoogleTest submodule is
+not required for the Python extension and must not be built for the target.
+
+---
+ CMakeLists.txt          | 11 +++++------
+ bindings/bindings.cmake |  4 ----
+ inc/MbSerial.hpp        |  1 +
+ 3 files changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2bb224a..48b5c01 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.8)
+ project(RokiMotherboard)
+ 
+ set(CMAKE_CXX_STANDARD 17)
+-set(CMAKE_CXX_FLAGS "-Werror")
++set(CMAKE_POSITION_INDEPENDENT_CODE ON)
++add_compile_options(-fpermissive)
+ 
+-add_subdirectory(deps/pybind11)
++find_package(pybind11 CONFIG REQUIRED)
+ add_subdirectory(deps/rcb4-base-class)
+ add_subdirectory(deps/roki-mb-service)
+-add_subdirectory(deps/googletest)
+ 
+ #add_definitions(-DDBGMB=1)
+ 
+@@ -45,6 +45,5 @@ target_link_libraries(ZubrAdapter PUBLIC Zubr)
+ add_library(MbDefaultConfig src/MbDefaultConfig.cpp)
+ target_link_libraries(MbDefaultConfig PUBLIC Motherboard)
+ 
+-include(tests/tests.cmake)
+ include(bindings/bindings.cmake)
+ # include(examples/examples.cmake)
+diff --git a/bindings/bindings.cmake b/bindings/bindings.cmake
+index 28fa566..b6f14ca 100644
+--- a/bindings/bindings.cmake
++++ b/bindings/bindings.cmake
+@@ -1,5 +1,3 @@
+-set(CMAKE_CXX_FLAGS "-fPIC")
+-
+ pybind11_add_module(Roki bindings/MBBinding.cpp)
+ target_link_libraries(Roki PUBLIC MotherboardAdapter RokiRcb4Adapter MbDefaultConfig ZubrAdapter)
+ 
+diff --git a/inc/MbSerial.hpp b/inc/MbSerial.hpp
+index 832ce3c..317e6cb 100644
+--- a/inc/MbSerial.hpp
++++ b/inc/MbSerial.hpp
+@@ -9,6 +9,7 @@
+ 
+ #include <array>
+ #include <assert.h>
++#include <cstdint>
+ #include <iostream>
+ #include <string>
+ #include <vector>

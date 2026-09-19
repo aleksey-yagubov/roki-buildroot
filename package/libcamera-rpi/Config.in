@@ -1,0 +1,25 @@
+config BR2_PACKAGE_LIBCAMERA_RPI
+	bool "libcamera-rpi"
+	depends on BR2_aarch64
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_10
+	depends on !BR2_STATIC_LIBS
+	depends on BR2_USE_WCHAR
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
+	depends on BR2_PACKAGE_GSTREAMER1
+	depends on BR2_PACKAGE_GST1_PLUGINS_BASE
+	depends on BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_ARDUCAM_PIVARIETY_SDK
+	select BR2_PACKAGE_LIBEVENT
+	select BR2_PACKAGE_LIBYAML
+	select BR2_PACKAGE_PYTHON_PYBIND
+	help
+	  Raspberry Pi's downstream libcamera, built only with the VC4 pipeline
+	  and its IPA. Includes the experimental Python module imported as
+	  'libcamera' and Arducam Pivariety support for the fitted CSI-2 camera.
+
+comment "libcamera-rpi needs aarch64, Python, C++, threads, wchar, dynamic libraries, gcc >= 10 and headers >= 5.3"
+	depends on !BR2_aarch64 || !BR2_PACKAGE_PYTHON3 || !BR2_INSTALL_LIBSTDCPP || \
+		!BR2_TOOLCHAIN_HAS_THREADS || !BR2_TOOLCHAIN_GCC_AT_LEAST_10 || \
+		BR2_STATIC_LIBS || !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3

@@ -1,0 +1,51 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] toolchain: accept Arch Linux cross sysroot layout
+
+Arch's cross packages install headers in <sysroot>/include instead of the
+usual <sysroot>/usr/include. Preserve the conventional staging layout while
+accepting that source layout for external toolchains.
+
+---
+ support/scripts/check-kernel-headers.sh | 7 ++++++-
+ toolchain/helpers.mk                    | 4 ++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/support/scripts/check-kernel-headers.sh b/support/scripts/check-kernel-headers.sh
+--- a/support/scripts/check-kernel-headers.sh
++++ b/support/scripts/check-kernel-headers.sh
+@@ -28,6 +28,12 @@ HDR_m="${HDR_V%%.*}"
+ # Exit on any error, so we don't try to run an unexisting program if the
+ # compilation fails.
+ set -e
++
++if [ ! -f "${SYSROOT}/usr/include/linux/version.h" ]; then
++    KERNEL_HEADERS_DIR="${SYSROOT}/include"
++else
++    KERNEL_HEADERS_DIR="${SYSROOT}/usr/include"
++fi
+ 
+ # Set the clean-up trap in advance to prevent a race condition in which we
+ # create the file but get a SIGTERM before setting it. Notice that we don't
+@@ -43,7 +49,7 @@ EXEC="$(mktemp -p "${BUILDDIR}" -t .check-headers.XXXXXX)"
+ # not supposed to change for different patchlevels, so we mask it out.
+ # This only applies to kernels >= 3.0, but those are the only one
+ # we actually care about; we treat all 2.6.x kernels equally.
+-${HOSTCC} -imacros "${SYSROOT}/usr/include/linux/version.h" \
++${HOSTCC} -imacros "${KERNEL_HEADERS_DIR}/linux/version.h" \
+           -x c -o "${EXEC}" - <<_EOF_
+ #include <stdio.h>
+ #include <stdlib.h>
+diff --git a/toolchain/helpers.mk b/toolchain/helpers.mk
+--- a/toolchain/helpers.mk
++++ b/toolchain/helpers.mk
+@@ -126,6 +126,10 @@ copy_toolchain_sysroot = \
+ 			rsync -au --chmod=u=rwX,go=rX --exclude 'locale/' \
+ 				$${ARCH_SYSROOT_DIR}/$$i/ $(STAGING_DIR)/$$i/ ; \
+ 		fi ; \
+ 	done ; \
++	if [ -d $${ARCH_SYSROOT_DIR}/include ]; then \
++		rsync -au --chmod=u=rwX,go=rX --exclude 'locale/' \
++			$${ARCH_SYSROOT_DIR}/include/ $(STAGING_DIR)/usr/include/ ; \
++	fi ; \
+ 	for link in $$(find $(STAGING_DIR) -type l); do \
+ 		target=$$(readlink $${link}) ; \

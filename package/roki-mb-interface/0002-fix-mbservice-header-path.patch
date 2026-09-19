@@ -1,0 +1,18 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] build: expose MbService headers to IMUFrame
+
+IMUFrame includes MbMessages.hpp without the roki-mb-service/ prefix, while
+the dependency exports only its parent include directory.
+
+---
+ CMakeLists.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -24,2 +24,4 @@
+ add_library(IMUFrame src/Helpers/IMUFrame.cpp)
++target_include_directories(IMUFrame PRIVATE
++    ${CMAKE_CURRENT_SOURCE_DIR}/deps/roki-mb-service/inc/roki-mb-service)
+ target_link_libraries(IMUFrame PUBLIC MbService)

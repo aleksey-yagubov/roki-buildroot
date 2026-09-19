@@ -1,0 +1,6 @@
+type = scripted
+command = /usr/lib/dinit/fsck root
+restart = false
+options = start-interruptible skippable
+start-timeout = 0
+depends-on = early-prepare.target

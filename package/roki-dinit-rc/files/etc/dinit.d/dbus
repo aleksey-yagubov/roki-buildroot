@@ -1,0 +1,8 @@
+type = process
+command = /usr/bin/dbus-daemon --system --nofork --nopidfile
+restart = true
+smooth-recovery = true
+# The system bus uses /run/dbus, created by pseudofs. Its machine-id and
+# configuration are readable from the initial read-only root filesystem.
+depends-on = pseudofs
+before = iwd

@@ -1,0 +1,23 @@
+# Roki head: SSH server only. Host keys are deliberately image-wide.
+Port 22
+
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+PermitRootLogin yes
+PasswordAuthentication yes
+KbdInteractiveAuthentication no
+PermitEmptyPasswords yes
+UsePAM no
+UseDNS no
+
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding no
+PermitTunnel no
+GatewayPorts no
+PermitUserEnvironment no
+PermitUserRC no
+
+PrintMotd no
+Subsystem sftp /usr/libexec/sftp-server

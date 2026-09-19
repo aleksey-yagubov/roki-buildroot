@@ -1,0 +1,8 @@
+type = internal
+depends-on = network.target
+depends-on = sshd
+waits-for = dbus
+waits-for = iwd
+waits-for = roki-display
+waits-for = roki-buttons
+waits-for = roki-head

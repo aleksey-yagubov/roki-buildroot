@@ -1,0 +1,3 @@
+# <file system> <dir>  <type> <options>                                      <dump> <pass>
+LABEL=ROOTFS   /      ext4   rw,noatime,errors=remount-ro                      0      1
+LABEL=BOOT     /boot  vfat   ro,noatime,nosuid,nodev,noexec                  0      2

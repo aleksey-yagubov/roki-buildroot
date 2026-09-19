@@ -1,0 +1,5 @@
+# Dinit starts this service when an essential boot dependency fails.
+type = process
+command = /bin/bash -i
+restart = false
+options = runs-on-console

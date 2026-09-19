@@ -1,0 +1,52 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] rpi: export the Unicam Bayer frame sequence
+
+Expose the V4L2 sequence of the Bayer buffer that feeds the VC4 ISP as
+request metadata. This preserves the hardware camera sequence without
+requiring applications to configure a RAW output stream.
+
+---
+ src/libcamera/control_ids_rpi.yaml       | 14 ++++++++++++++
+ src/libcamera/pipeline/rpi/vc4/vc4.cpp |  4 ++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/src/libcamera/control_ids_rpi.yaml b/src/libcamera/control_ids_rpi.yaml
+index 9d0f300..2222507 100644
+--- a/src/libcamera/control_ids_rpi.yaml
++++ b/src/libcamera/control_ids_rpi.yaml
+@@ -308,4 +308,18 @@ controls:
+         This control returns performance metrics for the CNN processing stage.
+         Two values are returned in this span, the runtime of the CNN/DNN stage
+         and the DSP stage in milliseconds.
++
++  - UnicamSequence:
++      type: int64_t
++      direction: out
++      description: |
++        The hardware frame sequence from the VC4 Unicam image buffer used
++        to produce this request. This is the V4L2 capture sequence, not the
++        request sequence or the ISP output buffer sequence. It is available
++        even when the application configures only processed output streams.
++
++        The underlying counter is unsigned 32-bit and may wrap. Its origin
++        is the start of Unicam streaming, not the first frame delivered to
++        the application; startup and dropped frames can leave gaps.
++        This metadata is only provided by the Raspberry Pi VC4 pipeline.
+ ...
+diff --git a/src/libcamera/pipeline/rpi/vc4/vc4.cpp b/src/libcamera/pipeline/rpi/vc4/vc4.cpp
+index ac86a43..7cd0b83 100644
+--- a/src/libcamera/pipeline/rpi/vc4/vc4.cpp
++++ b/src/libcamera/pipeline/rpi/vc4/vc4.cpp
+@@ -984,6 +984,10 @@ void Vc4CameraData::tryRunPipeline()
+ 
+ 	fillRequestMetadata(bayerFrame.controls, request);
+ 
++	/* Keep the hardware input sequence paired with this request's ISP output. */
++	request->_d()->metadata().set(controls::rpi::UnicamSequence,
++				       static_cast<int64_t>(bayerFrame.buffer->metadata().sequence));
++
+ 	unsigned int bayer = unicam_[Unicam::Image].getBufferId(bayerFrame.buffer);
+ 
+ 	LOG(RPI, Debug) << "Signalling prepareIsp:"
+-- 
+2.51.0

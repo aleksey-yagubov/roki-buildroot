@@ -1,0 +1,6 @@
+type = process
+command = /usr/lib/dinit/roki-head-launch
+logfile = /var/log/roki-head.log
+logfile-permissions = 644
+depends-on = local.target
+waits-for = roki-display

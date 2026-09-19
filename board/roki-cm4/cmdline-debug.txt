@@ -1,0 +1,1 @@
+root=/dev/mmcblk0p2 rootfstype=ext4 ro fsck.repair=yes rootwait init=/usr/bin/dinit console=ttyAMA0,115200 earlycon=pl011,mmio32,0xfe201000 loglevel=7 ignore_loglevel

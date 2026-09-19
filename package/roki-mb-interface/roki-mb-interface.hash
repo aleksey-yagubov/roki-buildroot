@@ -1,0 +1,4 @@
+# Locally computed from the GitHub source archives pinned in roki-mb-interface.mk.
+sha256  d134ec8957718ad24b818035423174341ad412d063b8ec8aa0e2e46dd829baf7  roki-mb-interface-e4087466c7ddca0fd1d9d342eb4e09200f435b02.tar.gz
+sha256  d7035988f721ea303e2244034784912a587b1d0bb3fde0d368f34dc952cb0d78  af9ade42eddcfa0c3ba0ca28a426d6df50ea0d24.tar.gz
+sha256  384bf85c41a93b6e9728ada43b2fc270df304ca10a4c02de1ca762019f45310a  0d64f8bb28cfe816595d07cbd3bd15218c5c0982.tar.gz

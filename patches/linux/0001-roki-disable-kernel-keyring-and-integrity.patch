@@ -1,0 +1,74 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] roki: hard-disable kernel keyring and integrity verification
+
+The Roki CM4 image embeds an unsigned regulatory database. It deliberately
+does not ship kernel keyrings, certificate parsers, or integrity verification.
+
+Linux enables the signed cfg80211 regulatory database by default, even when
+its prompt is hidden. Remove the verification selectors it uses and make the
+generic keyring subsystem immutable n. The fragment fixes the remaining
+integrity and signed-regdb options to n.
+
+This does not affect the symmetric kernel crypto API used by IWD for WPA.
+
+---
+ init/Kconfig               | 10 ----------
+ net/wireless/Kconfig       |  4 +---
+ security/integrity/Kconfig |  4 +---
+ security/keys/Kconfig      |  3 +--
+ 4 files changed, 3 insertions(+), 18 deletions(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -2066,13 +2066,3 @@ config SYSTEM_DATA_VERIFICATION
+	def_bool n
+-	select SYSTEM_TRUSTED_KEYRING
+-	select KEYS
+-	select CRYPTO
+-	select CRYPTO_RSA
+-	select ASYMMETRIC_KEY_TYPE
+-	select ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+-	select ASN1
+-	select OID_REGISTRY
+-	select X509_CERTIFICATE_PARSER
+-	select PKCS7_MESSAGE_PARSER
+	help
+	  Provide PKCS#7 message verification using the contents of the system
+diff --git a/net/wireless/Kconfig b/net/wireless/Kconfig
+--- a/net/wireless/Kconfig
++++ b/net/wireless/Kconfig
+@@ -87,9 +87,7 @@
+ 	  and approved environment by your local regulatory agency.
+ 
+ config CFG80211_REQUIRE_SIGNED_REGDB
+-	bool "require regdb signature" if CFG80211_CERTIFICATION_ONUS
+-	default y
+-	select SYSTEM_DATA_VERIFICATION
++	def_bool n
+ 	help
+ 	  Require that in addition to the "regulatory.db" file a
+ 	  "regulatory.db.p7s" can be loaded with a valid PKCS#7
+diff --git a/security/integrity/Kconfig b/security/integrity/Kconfig
+--- a/security/integrity/Kconfig
++++ b/security/integrity/Kconfig
+@@ -1,9 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ #
+ config INTEGRITY
+-	bool "Integrity subsystem"
+-	depends on SECURITY
+-	default y
++	def_bool n
+ 	help
+ 	  This option enables the integrity subsystem, which is comprised
+ 	  of a number of different components including the Integrity
+diff --git a/security/keys/Kconfig b/security/keys/Kconfig
+--- a/security/keys/Kconfig
++++ b/security/keys/Kconfig
+@@ -6,3 +6,2 @@
+-menuconfig KEYS
++config KEYS
+-	bool "Enable access key retention support"
+-	select ASSOCIATIVE_ARRAY
++	def_bool n

@@ -1,0 +1,45 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] toolchain: allow the configured external GCC runtime path
+
+An external distribution toolchain can legitimately keep its target GCC
+runtime under /usr/lib/gcc/<target>. Libtool discovers and passes this path
+back to the compiler. The generic unsafe-path guard otherwise rejects it
+along with native /usr/lib paths.
+
+The external toolchain package passes the exact target runtime prefix to the
+wrapper. All other host include and library paths remain rejected.
+
+--- a/toolchain/toolchain-external/pkg-toolchain-external.mk
++++ b/toolchain/toolchain-external/pkg-toolchain-external.mk
+@@ -241,5 +241,12 @@
+ TOOLCHAIN_EXTERNAL_CFLAGS += $(call qstrip,$(BR2_TARGET_OPTIMIZATION))
+ 
++# Distribution toolchains may store target-only GCC runtime objects below
++# /usr/lib/gcc. Libtool records this path explicitly during C++ links.
++ifeq ($(BR2_TOOLCHAIN_EXTERNAL_CUSTOM),y)
++TOOLCHAIN_EXTERNAL_TOOLCHAIN_WRAPPER_ARGS += \
++	-DBR_EXTERNAL_GCC_RUNTIME_DIR='"/usr/lib/gcc/$(call qstrip,$(BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX))"'
++endif
++
+ ifeq ($(BR2_SOFT_FLOAT),y)
+ TOOLCHAIN_EXTERNAL_CFLAGS += -msoft-float
+ TOOLCHAIN_EXTERNAL_TOOLCHAIN_WRAPPER_ARGS += -DBR_SOFTFLOAT=1
+--- a/toolchain/toolchain-wrapper.c
++++ b/toolchain/toolchain-wrapper.c
+@@ -151,4 +151,14 @@
+ {
+ 	const struct str_len_s *p;
+ 
++#ifdef BR_EXTERNAL_GCC_RUNTIME_DIR
++	/* This is the target runtime directory of the configured external GCC,
++	 * not a build-host library directory. */
++	if (!strncmp(path, BR_EXTERNAL_GCC_RUNTIME_DIR,
++		     sizeof(BR_EXTERNAL_GCC_RUNTIME_DIR) - 1) &&
++	    (path[sizeof(BR_EXTERNAL_GCC_RUNTIME_DIR) - 1] == '\0' ||
++	     path[sizeof(BR_EXTERNAL_GCC_RUNTIME_DIR) - 1] == '/'))
++		return;
++#endif
++
+ 	for (p=unsafe_paths; p->str; p++) {
+ 		if (strncmp(path, p->str, p->len))
+ 			continue;

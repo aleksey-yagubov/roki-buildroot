@@ -1,0 +1,22 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] ALSA: USB: do not select media controller integration
+
+The Roki CM4 needs MEDIA_CONTROLLER for its CSI camera pipeline, but its USB
+microphone is an ordinary ALSA PCM device. Do not add USB-audio media entities
+solely because the independent camera pipeline uses V4L2 media-controller.
+
+---
+ sound/usb/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/sound/usb/Kconfig b/sound/usb/Kconfig
+--- a/sound/usb/Kconfig
++++ b/sound/usb/Kconfig
+@@ -17,7 +17,6 @@ config SND_USB_AUDIO
+ 	select SND_PCM
+ 	select SND_UMP if SND_USB_AUDIO_MIDI_V2
+ 	select BITREVERSE
+-	select SND_USB_AUDIO_USE_MEDIA_CONTROLLER if MEDIA_CONTROLLER && (MEDIA_SUPPORT=y || MEDIA_SUPPORT=SND_USB_AUDIO)
+ 	help
+ 	  Say Y here to include support for USB audio and USB MIDI
+ 	  devices.

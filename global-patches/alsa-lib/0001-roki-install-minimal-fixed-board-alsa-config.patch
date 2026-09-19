@@ -1,0 +1,105 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] conf: install a minimal fixed-board ALSA configuration
+
+The robot head has one I2S playback device and may have a USB capture device.
+Do not install generic HDMI, surround, modem, or desktop sound definitions.
+
+---
+ src/conf/Makefile.am    | 15 ++++++++++-----
+ src/conf/roki-alsa.conf | 60 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+), 5 deletions(-)
+
+diff --git a/src/conf/Makefile.am b/src/conf/Makefile.am
+index 9cf4b8dd..b1c214d6 100644
+--- a/src/conf/Makefile.am
++++ b/src/conf/Makefile.am
+@@ -1,14 +1,15 @@
+-SUBDIRS=cards ctl pcm
++SUBDIRS =
+ 
+-cfg_files = alsa.conf
+-if BUILD_MODULES
+-if BUILD_MIXER_MODULES
+-cfg_files += smixer.conf
+-endif
+-endif
++cfg_files = roki-alsa.conf
+ 
+ EXTRA_DIST = $(cfg_files)
+ 
+ alsaconfigdir = @ALSA_CONFIG_DIR@
+ alsadir = $(alsaconfigdir)
+-alsa_DATA = $(cfg_files)
++alsa_DATA =
++
++install-data-local:
++	$(MKDIR_P) $(DESTDIR)$(alsadir)
++	rm -rf $(DESTDIR)$(alsadir)/cards $(DESTDIR)$(alsadir)/ctl \
++		$(DESTDIR)$(alsadir)/init $(DESTDIR)$(alsadir)/pcm
++	$(INSTALL_DATA) $(srcdir)/roki-alsa.conf $(DESTDIR)$(alsadir)/alsa.conf
+diff --git a/src/conf/roki-alsa.conf b/src/conf/roki-alsa.conf
+new file mode 100644
+index 00000000..3a680d35
+--- /dev/null
++++ b/src/conf/roki-alsa.conf
+@@ -0,0 +1,60 @@
++# Minimal ALSA configuration for the fixed Roki CM4 robot head.
++# Playback defaults to the MAX98357A I2S card. USB audio stays available
++# through explicit hardware names such as hw:1,0.
++
++defaults.ctl.card 0
++defaults.pcm.card 0
++defaults.pcm.device 0
++defaults.pcm.subdevice -1
++
++pcm.hw {
++	@args [ CARD DEV SUBDEV ]
++	@args.CARD {
++		type string
++		default {
++			@func refer
++			name defaults.pcm.card
++		}
++	}
++	@args.DEV {
++		type integer
++		default {
++			@func refer
++			name defaults.pcm.device
++		}
++	}
++	@args.SUBDEV {
++		type integer
++		default {
++			@func refer
++			name defaults.pcm.subdevice
++		}
++	}
++	type hw
++	card $CARD
++	device $DEV
++	subdevice $SUBDEV
++}
++
++pcm.default {
++	type plug
++	slave.pcm "hw:0,0"
++}
++
++ctl.hw {
++	@args [ CARD ]
++	@args.CARD {
++		type string
++		default {
++			@func refer
++			name defaults.ctl.card
++		}
++	}
++	type hw
++	card $CARD
++}
++
++ctl.default {
++	type hw
++	card 0
++}

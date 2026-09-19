@@ -1,0 +1,28 @@
+From: Roki Buildroot <noreply@roki.local>
+Subject: [PATCH] package/shadow: allow a minimal Roki installation
+
+Roki's downstream Shadow patch removes local-login and account-management
+programs, leaving only passwd and chpasswd. Do not add device-table entries
+for the removed setuid programs while generating the root filesystem.
+
+Signed-off-by: Roki Buildroot <noreply@roki.local>
+---
+ package/shadow/shadow.mk | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/package/shadow/shadow.mk b/package/shadow/shadow.mk
+--- a/package/shadow/shadow.mk
++++ b/package/shadow/shadow.mk
+@@ -132,12 +132,6 @@ SHADOW_DEPENDENCIES += libbsd
+ endif
+ 
+ define SHADOW_PERMISSIONS
+-	/usr/bin/chage f 4755 0 0 - - - - -
+-	/usr/bin/chfn f 4755 0 0 - - - - -
+-	/usr/bin/chsh f 4755 0 0 - - - - -
+-	/usr/bin/expiry f 4755 0 0 - - - - -
+-	/usr/bin/gpasswd f 4755 0 0 - - - - -
+-	/usr/bin/newgrp f 4755 0 0 - - - - -
+ 	/usr/bin/passwd f 4755 0 0 - - - - -
+ 	$(SHADOW_ACCOUNT_TOOLS_SETUID_PERMISSIONS)
+ 	$(SHADOW_SUBORDINATE_IDS_PERMISSIONS)

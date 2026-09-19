@@ -1,0 +1,75 @@
+# Install with:
+# pacman -S --needed $(grep -v '^#' docs/arch-host-packages.txt)
+#
+# genimage and its host dependency libconfuse are intentionally absent:
+# Buildroot builds those two small host packages itself.
+
+# Buildroot wrapper and source downloads
+bash
+curl
+git
+
+# Native build prerequisites and kernel tools
+bc
+bison
+bzip2
+cpio
+diffutils
+file
+findutils
+flex
+gawk
+gcc
+grep
+gzip
+make
+patch
+perl
+rsync
+sed
+tar
+unzip
+which
+xz
+zstd
+
+# Interactive configurators
+ncurses
+
+# System host tools used by the fast-host mode
+autoconf
+autoconf-archive
+automake
+cmake
+dosfstools
+e2fsprogs
+fakeroot
+kmod
+libtool
+m4
+meson
+mtools
+ninja
+openssl
+patchelf
+pkgconf
+gperf
+python
+python-build
+python-flit-core
+python-installer
+python-jinja
+python-packaging
+python-pyyaml
+python-pyproject-hooks
+python-setuptools
+python-wheel
+
+# Compile custom Device Tree overlays
+dtc
+
+# Pre-installed external ARM64 glibc toolchain
+aarch64-linux-gnu-binutils
+aarch64-linux-gnu-gcc
+aarch64-linux-gnu-glibc
+aarch64-linux-gnu-linux-api-headers

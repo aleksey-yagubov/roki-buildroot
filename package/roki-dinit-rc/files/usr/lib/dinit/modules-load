@@ -1,0 +1,11 @@
+#!/bin/sh
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+{
+    sed -n 's/.*\(^\| \)\(rd\.\)\{0,1\}modules-load=\([^ ]*\).*/\3/p' /proc/cmdline
+    find -L /etc/modules-load.d /run/modules-load.d /usr/lib/modules-load.d \
+        -maxdepth 1 -name '*.conf' -printf '%p %P\n' 2>/dev/null |
+        sort -k2 -s | uniq -f1 | cut -d' ' -f1 |
+        tr '\n' '\0' | xargs -0 -r grep -h -v -e '^[#;]' -e '^$'
+} | tr '\n' '\0' | xargs -0 -r modprobe -ab "$@"

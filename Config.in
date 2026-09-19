@@ -1,0 +1,12 @@
+menu "Roki CM4 packages"
+source "$BR2_EXTERNAL_ROKI_PATH/package/dinit/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/roki-dinit-rc/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/python-st7789-roki/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/roki-head-platform/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/roki-mb-interface/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/python-starkit/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/roki-rpi-firmware/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/roki-cm4-wifi-firmware/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/arducam-pivariety-sdk/Config.in"
+source "$BR2_EXTERNAL_ROKI_PATH/package/libcamera-rpi/Config.in"
+endmenu

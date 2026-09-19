@@ -1,0 +1,5 @@
+#!/bin/sh
+
+[ -s /etc/hostname ] || exit 0
+hostname=$(cat /etc/hostname)
+[ -n "$hostname" ] && echo "$hostname" > /proc/sys/kernel/hostname

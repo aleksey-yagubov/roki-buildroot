@@ -1,0 +1,8 @@
+config BR2_PACKAGE_ROKI_HEAD_PLATFORM
+	bool "Roki head platform scripts"
+	select BR2_PACKAGE_PYTHON_ST7789_ROKI
+	help
+	  Display and button scripts used by the Roki Dinit units.
+
+	  Select their remaining Python runtime dependencies separately: Python,
+	  evdev and eSpeak NG.

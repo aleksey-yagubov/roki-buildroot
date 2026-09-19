@@ -1,0 +1,12 @@
+#!/bin/sh
+
+status=0
+for name in "$@"; do
+	path=$(command -v "$name" 2>/dev/null) || {
+		status=1
+		continue
+	}
+	printf '%s\n' "$path"
+done
+
+exit "$status"

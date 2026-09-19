@@ -1,0 +1,25 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/python-numpy: constrain AArch64 SIMD to NEON
+
+The cross compiler accepts Armv8.2 and SVE flags, so NumPy's automatic
+cross-build detection creates dispatch variants unsupported by Cortex-A72.
+Use the mandatory AArch64 NEON baseline and omit optional dispatch variants.
+
+--- a/package/python-numpy/python-numpy.mk
++++ b/package/python-numpy/python-numpy.mk
+@@ -27,4 +27,14 @@ PYTHON_NUMPY_NINJA_ENV += \
+ 	PYTHONPATH="$(@D)/vendored-meson/meson:$(PYTHON3_PATH)"
+ 
++# AArch64 guarantees NEON, while Cortex-A72 lacks Armv8.2 FP16 arithmetic,
++# dot-product, BF16 and SVE. Do not infer features merely from compiler flag
++# acceptance during cross compilation.
++ifeq ($(BR2_aarch64),y)
++PYTHON_NUMPY_CONF_OPTS += \
++	-Dcpu-baseline=NEON \
++	-Dcpu-baseline-detect=disabled \
++	-Dcpu-dispatch=
++endif
++
+ ifeq ($(BR2_PACKAGE_LAPACK),y)
+ PYTHON_NUMPY_DEPENDENCIES += lapack
+ PYTHON_NUMPY_CONF_OPTS += -Dlapack=lapack

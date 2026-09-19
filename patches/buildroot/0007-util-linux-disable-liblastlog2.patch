@@ -1,0 +1,24 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] util-linux: disable unused liblastlog2
+
+The image has no login service and does not use a last-login database.
+Recent util-linux enables liblastlog2 by default, which requires SQLite even
+though Buildroot does not select SQLite as a dependency.  Disable it for the
+target package instead of adding SQLite solely for this unused feature.
+
+---
+ package/util-linux/util-linux.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/package/util-linux/util-linux.mk
++++ b/package/util-linux/util-linux.mk
+@@ -56,6 +56,7 @@ UTIL_LINUX_CONF_OPTS += \
+ 	--disable-asciidoc \
+ 	--disable-makeinstall-chown \
+ 	--disable-poman \
++	--disable-liblastlog2 \
+ 	--disable-rpath \
+ 	--disable-year2038
+
+-- 
+2.51.0

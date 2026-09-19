@@ -1,0 +1,5 @@
+# Locally calculated from the pinned upstream files.
+sha256  b22e0901227b820cd1c280abe681a15b773a5103a5e10dc442e94ebb34cbf58d  wireless-regdb-2026.09.03.tar.xz
+sha256  eaff8d2b6d2501bb5c477ba343900c7487af915898eac13bc91b33b1285dadce  cyfmac43455-sdio.bin
+sha256  8fbe9fc2952e2fbab062a142c1ea3e261cd74604761e12f304781b911df4a328  cyfmac43455-sdio.clm_blob
+sha256  edb6f4e4fb19e18940004124feb4ffe160d72fc607243a07a4480338a28b2748  brcmfmac43455-sdio.raspberrypi,4-model-b.txt

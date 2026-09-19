@@ -1,0 +1,5 @@
+config BR2_PACKAGE_ROKI_DINIT_RC
+	bool "Roki Dinit service definitions"
+	select BR2_PACKAGE_DINIT
+	help
+	  Roki CM4 boot sequence and service definitions for Dinit.

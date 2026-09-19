@@ -1,0 +1,58 @@
+From: Roki Buildroot <noreply@roki.local>
+Subject: [PATCH] package/shadow: clean files removed by the Roki patch
+
+The downstream Shadow patch keeps only passwd and chpasswd. Clean files from
+TARGET_DIR after its normal installation so incremental rebuilds cannot retain
+utilities or policy files installed by an earlier package configuration.
+
+Signed-off-by: Roki Buildroot <noreply@roki.local>
+---
+ package/shadow/shadow.mk | 37 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
+
+diff --git a/package/shadow/shadow.mk b/package/shadow/shadow.mk
+--- a/package/shadow/shadow.mk
++++ b/package/shadow/shadow.mk
+@@ -137,6 +137,43 @@ define SHADOW_PERMISSIONS
+ endef
+ 
++define SHADOW_ROKI_CLEAN_REMOVED_FILES
++	rm -f $(TARGET_DIR)/etc/limits \
++		$(TARGET_DIR)/etc/login.access \
++		$(TARGET_DIR)/bin/login \
++		$(TARGET_DIR)/bin/getsubids \
++		$(TARGET_DIR)/sbin/nologin \
++		$(TARGET_DIR)/usr/bin/chage \
++		$(TARGET_DIR)/usr/bin/chfn \
++		$(TARGET_DIR)/usr/bin/chsh \
++		$(TARGET_DIR)/usr/bin/expiry \
++		$(TARGET_DIR)/usr/bin/faillog \
++		$(TARGET_DIR)/usr/bin/gpasswd \
++		$(TARGET_DIR)/usr/bin/lastlog \
++		$(TARGET_DIR)/usr/bin/newgrp \
++		$(TARGET_DIR)/usr/bin/sg \
++		$(TARGET_DIR)/usr/sbin/chgpasswd \
++		$(TARGET_DIR)/usr/sbin/groupadd \
++		$(TARGET_DIR)/usr/sbin/groupdel \
++		$(TARGET_DIR)/usr/sbin/groupmems \
++		$(TARGET_DIR)/usr/sbin/groupmod \
++		$(TARGET_DIR)/usr/sbin/grpck \
++		$(TARGET_DIR)/usr/sbin/grpconv \
++		$(TARGET_DIR)/usr/sbin/grpunconv \
++		$(TARGET_DIR)/usr/sbin/logoutd \
++		$(TARGET_DIR)/usr/sbin/newusers \
++		$(TARGET_DIR)/usr/sbin/pwck \
++		$(TARGET_DIR)/usr/sbin/pwconv \
++		$(TARGET_DIR)/usr/sbin/pwunconv \
++		$(TARGET_DIR)/usr/sbin/useradd \
++		$(TARGET_DIR)/usr/sbin/userdel \
++		$(TARGET_DIR)/usr/sbin/usermod \
++		$(TARGET_DIR)/usr/sbin/vipw \
++		$(TARGET_DIR)/usr/sbin/vigr
++endef
++
++SHADOW_POST_INSTALL_TARGET_HOOKS += SHADOW_ROKI_CLEAN_REMOVED_FILES
++
+ ifeq ($(BR2_TARGET_GENERIC_PASSWD_SHA256),y)
+ SHADOW_ENCRYPT_METHOD = SHA256
+ else ifeq ($(BR2_TARGET_GENERIC_PASSWD_SHA512),y)

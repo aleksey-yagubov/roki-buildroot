@@ -1,0 +1,4 @@
+#!/bin/sh
+
+/usr/sbin/ip link set dev eth0 up
+/usr/sbin/ip address replace 172.30.0.1/30 dev eth0

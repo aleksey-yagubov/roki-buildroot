@@ -1,0 +1,8 @@
+config BR2_INIT_ROKI_DINIT
+	bool "Dinit"
+	depends on BR2_USE_MMU
+	select BR2_PACKAGE_DINIT
+	select BR2_PACKAGE_SKELETON_INIT_NONE if BR2_ROOTFS_SKELETON_DEFAULT
+	help
+	  Dinit service manager running as PID 1. Service descriptions are
+	  supplied by the roki-dinit-rc package.

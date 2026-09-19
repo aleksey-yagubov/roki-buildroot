@@ -1,0 +1,27 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] i2c-tools: do not unconditionally build py-smbus
+
+The py-smbus binding is not needed in the Roki image.  i2c-tools 4.4 uses a
+legacy setup.py install invocation which is incompatible with Python 3.14.
+Keep the command-line diagnostic tools and libi2c, but do not build py-smbus
+merely because Python is enabled globally.
+
+---
+ package/i2c-tools/i2c-tools.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package/i2c-tools/i2c-tools.mk b/package/i2c-tools/i2c-tools.mk
+index 75ee012b6c..cc3284ca96 100644
+--- a/package/i2c-tools/i2c-tools.mk
++++ b/package/i2c-tools/i2c-tools.mk
+@@ -30,7 +30,7 @@ endif
+ 
+ # Build/install steps mirror the distutil python package type in the python package
+ # infrastructure
+-ifeq ($(BR2_PACKAGE_PYTHON3),y)
++ifeq ($(BR2_PACKAGE_I2C_TOOLS_PYSMBUS),y)
+ # BASE_ENV taken from PKG_PYTHON_SETUPTOOLS_ENV in package/pkg-python.mk
+ I2C_TOOLS_PYTHON_BASE_ENV = \
+ 	$(PKG_PYTHON_SETUPTOOLS_ENV) \
+-- 
+2.51.0

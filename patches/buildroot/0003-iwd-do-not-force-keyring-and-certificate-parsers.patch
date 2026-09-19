@@ -1,0 +1,33 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] iwd: do not force kernel keyring and certificate parsers
+
+IWD can connect to WPA-PSK networks without the kernel keyring or X.509 and
+PKCS parsers. Keep Buildroot from overriding the Roki kernel fragment with
+those optional facilities. The required kernel crypto API fixups remain.
+
+---
+ package/iwd/iwd.mk | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/package/iwd/iwd.mk b/package/iwd/iwd.mk
+--- a/package/iwd/iwd.mk
++++ b/package/iwd/iwd.mk
+@@ -70,7 +70,5 @@ endef
+ 
+ define IWD_LINUX_CONFIG_FIXUPS
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_ASYMMETRIC_KEY_TYPE)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE)
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_AES)
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_CBC)
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_CMAC)
+@@ -84,10 +82,5 @@ define IWD_LINUX_CONFIG_FIXUPS
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_SHA512)
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_USER_API_HASH)
+ 	$(call KCONFIG_ENABLE_OPT,CONFIG_CRYPTO_USER_API_SKCIPHER)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_KEYS)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_KEY_DH_OPERATIONS)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_PKCS7_MESSAGE_PARSER)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_PKCS8_PRIVATE_KEY_PARSER)
+-	$(call KCONFIG_ENABLE_OPT,CONFIG_X509_CERTIFICATE_PARSER)
+ 	$(IWD_LINUX_CONFIG_FIXUP_MONITOR)
+ endef

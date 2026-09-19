@@ -1,0 +1,4 @@
+# Temporary diagnostic shell on PL011 uart0 /dev/ttyAMA0.
+type = process
+command = /bin/bash -i
+depends-on = root-rw

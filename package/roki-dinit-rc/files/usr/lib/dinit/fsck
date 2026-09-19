@@ -1,0 +1,68 @@
+#!/bin/sh
+
+command -v fsck >/dev/null 2>&1 || exit 0
+
+force_arg=
+fix_arg=-a
+
+if [ -r /proc/cmdline ]; then
+    for arg in $(cat /proc/cmdline); do
+        case "$arg" in
+            fastboot|fsck.mode=skip)
+                echo "Skipping filesystem checks."
+                exit 0
+                ;;
+            forcefsck|fsck.mode=force) force_arg=-f ;;
+            fsckfix|fsck.repair=yes) fix_arg=-y ;;
+            fsck.repair=no) fix_arg=-n ;;
+        esac
+    done
+fi
+
+[ "$1" = root ] || exit 0
+
+if [ -r /etc/fstab ]; then
+    while read -r fs_spec fs_file fs_vfstype fs_mntops fs_freq fs_passno _; do
+        case "$fs_spec" in
+            ''|'#'*) continue ;;
+        esac
+        if [ "$fs_file" = / ] && [ "$fs_passno" = 0 ]; then
+            echo "Skipping root filesystem check (fs_passno == 0)."
+            exit 0
+        fi
+    done </etc/fstab
+fi
+
+root_device=
+root_fstype=
+while read -r fs_spec fs_file fs_vfstype _; do
+    if [ "$fs_file" = / ]; then
+        root_device=$fs_spec
+        root_fstype=$fs_vfstype
+        break
+    fi
+done </proc/self/mounts
+[ -b "$root_device" ] && [ -n "$root_fstype" ] || exit 0
+command -v "fsck.$root_fstype" >/dev/null 2>&1 || exit 0
+
+echo "Checking root filesystem (^C to skip)..."
+fsck -C $force_arg $fix_arg -t "$root_fstype" "$root_device"
+status=$?
+
+case "$status" in
+    0) exit 0 ;;
+    1)
+        echo "Root filesystem repaired; continuing boot."
+        exit 0
+        ;;
+    2|3)
+        echo "Root filesystem repaired; rebooting."
+        sleep 5
+        /usr/sbin/shutdown -r
+        exit 1
+        ;;
+    *)
+        echo "Root filesystem check failed (fsck status $status)."
+        exit 1
+        ;;
+esac

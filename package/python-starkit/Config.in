@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_STARKIT
+	bool "python-starkit"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  Starkit inverse-kinematics Python extension.

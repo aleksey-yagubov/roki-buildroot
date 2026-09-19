@@ -1,0 +1,27 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/python-numpy: omit tests and development helpers
+
+NumPy tests, bundled documentation and PyInstaller integration are not needed
+by the target runtime. Remove them only after target installation; leave the
+Meson build configuration, native extensions and staging installation intact.
+
+--- a/package/python-numpy/python-numpy.mk
++++ b/package/python-numpy/python-numpy.mk
+@@ -111,8 +111,17 @@ PYTHON_NUMPY_POST_INSTALL_STAGING_HOOKS += PYTHON_NUMPY_FIXUP_NPY_PKG_CONFIG_FIL
+ PYTHON_NUMPY_POST_INSTALL_STAGING_HOOKS += PYTHON_NUMPY_FIXUP_NPY_PKG_CONFIG_FILES
+ 
+ # Some package may include few headers from NumPy, so let's install it
+ # in the staging area.
+ PYTHON_NUMPY_INSTALL_STAGING = YES
+ 
++define PYTHON_NUMPY_REMOVE_TESTS_FROM_TARGET
++	find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/site-packages/numpy \
++		-type d \( -name test -o -name tests \) -prune -exec rm -rf {} +
++	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/site-packages/numpy/doc
++	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/site-packages/numpy/_pyinstaller
++endef
++
++PYTHON_NUMPY_POST_INSTALL_TARGET_HOOKS += PYTHON_NUMPY_REMOVE_TESTS_FROM_TARGET
++
+ $(eval $(meson-package))
+ $(eval $(host-python-package))

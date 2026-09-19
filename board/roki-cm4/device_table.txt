@@ -1,0 +1,15 @@
+# Base Buildroot permission table for the Roki image.
+#
+# The upstream table also creates /etc/network/if-*.d unconditionally. This
+# image does not use ifupdown: Ethernet is configured by dinit and Wi-Fi by
+# IWD, so those empty hook directories are intentionally omitted.
+#
+# <name>                <type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>
+/dev                    d      755    0     0     -       -       -       -     -
+/tmp                    d      1777   0     0     -       -       -       -     -
+/etc                    d      755    0     0     -       -       -       -     -
+/root                   d      700    0     0     -       -       -       -     -
+/etc/shadow             f      600    0     0     -       -       -       -     -
+/etc/passwd             f      644    0     0     -       -       -       -     -
+# Password changes are performed by root over SSH; no setuid account tools.
+/usr/bin/passwd         f      755    0     0     -       -       -       -     -

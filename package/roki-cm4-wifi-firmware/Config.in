@@ -1,0 +1,7 @@
+config BR2_PACKAGE_ROKI_CM4_WIFI_FIRMWARE
+	bool "Roki CM4 built-in Wi-Fi firmware"
+	depends on BR2_LINUX_KERNEL
+	help
+	  Downloads only the BCM43455 Wi-Fi firmware, CLM database, CM4 NVRAM
+	  and wireless regulatory database needed by the built-in brcmfmac driver.
+	  The files are compiled into the kernel before it is built.

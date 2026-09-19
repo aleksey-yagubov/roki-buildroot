@@ -1,0 +1,6 @@
+type = process
+command = /usr/bin/python /usr/bin/roki-display.py
+restart = false
+logfile = /var/log/roki-display.log
+logfile-permissions = 644
+depends-on = local.target

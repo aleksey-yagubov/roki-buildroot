@@ -1,0 +1,7 @@
+type = process
+command = /usr/lib/dinit/sshd
+restart = true
+smooth-recovery = true
+# sshd binds its wildcard socket before any interface is configured. Host keys
+# are immutable image files; only /run/sshd is needed at process start.
+depends-on = pseudofs

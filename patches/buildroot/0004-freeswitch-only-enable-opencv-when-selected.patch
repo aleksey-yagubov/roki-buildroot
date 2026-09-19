@@ -1,0 +1,25 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] freeswitch: do not enable OpenCV integration globally
+
+BR2_PACKAGE_FREESWITCH_OPENCV4 is an internal FreeSWITCH option. Its
+unconditional default enables highgui, objdetect, DNN and Protobuf whenever
+OpenCV is selected, even when FreeSWITCH itself is disabled.
+
+Enable the option only with FreeSWITCH.
+
+---
+ package/freeswitch/Config.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/package/freeswitch/Config.in
++++ b/package/freeswitch/Config.in
+@@ -31,6 +31,6 @@ config BR2_PACKAGE_FREESWITCH_OPENCV4
+ config BR2_PACKAGE_FREESWITCH_OPENCV4
+ 	bool
+-	default y
++	default y if BR2_PACKAGE_FREESWITCH
+ 	depends on BR2_PACKAGE_OPENCV4
+ 	depends on !BR2_TOOLCHAIN_USES_UCLIBC # objdetect
+ 	depends on BR2_PACKAGE_PROTOBUF_ARCH_SUPPORTS # objdetect
+-- 
+2.51.0

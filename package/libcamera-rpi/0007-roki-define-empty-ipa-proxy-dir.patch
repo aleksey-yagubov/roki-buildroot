@@ -1,0 +1,27 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] roki: keep IPA proxy base class buildable without workers
+
+The in-process Threaded IPA adapter still derives from IPAProxy, whose unused
+fallback path references IPA_PROXY_DIR. Define it as empty when isolated proxy
+workers are intentionally omitted.
+
+---
+ src/libcamera/meson.build | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/libcamera/meson.build b/src/libcamera/meson.build
+--- a/src/libcamera/meson.build
++++ b/src/libcamera/meson.build
+@@ -49,6 +49,10 @@ includes = [
+ 
+ libcamera_deps = []
+ 
++# Roki uses only the in-process Threaded IPA adapter. Keep the IPAProxy base
++# class buildable without installing isolated proxy worker executables.
++config_h.set('IPA_PROXY_DIR', '')
++
+ libatomic = cc.find_library('atomic', required : false)
+ libthreads = dependency('threads')
+ 
+-- 
+2.51.0

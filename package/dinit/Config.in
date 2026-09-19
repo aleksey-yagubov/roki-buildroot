@@ -1,0 +1,7 @@
+config BR2_PACKAGE_DINIT
+	bool "dinit"
+	depends on BR2_USE_MMU
+	help
+	  Dinit is a lightweight service manager and init system.
+
+	  https://github.com/davmac314/dinit

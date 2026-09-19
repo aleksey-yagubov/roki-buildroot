@@ -1,0 +1,44 @@
+# CM4 robot head boot configuration
+
+arm_64bit=1
+kernel=kernel8.img
+device_tree=bcm2711-roki-head.dtb
+
+# I2C0 on GPIO44/45, DS3231 and Arducam, is part of bcm2711-roki-head.dtb.
+
+# Headless camera configuration
+camera_auto_detect=0
+display_auto_detect=0
+hdmi_ignore_cec=1
+# The head has no HDMI display. Suppress hotplug/EDID handling on both CM4 ports.
+hdmi_ignore_hotplug:0=1
+hdmi_ignore_hotplug:1=1
+force_eeprom_read=0
+disable_poe_fan=1
+ignore_lcd=1
+disable_fw_kms_setup=1
+max_framebuffers=0
+gpu_mem=128
+disable_splash=1
+
+# All fixed robot hardware is described in bcm2711-roki-head.dtb.
+
+# Keep both MCU reset lines asserted, and keep the LCD dark and in reset,
+# until their userspace owners explicitly take control through libgpiod.
+# MCU reset is active-high; ST7789 reset and its backlight are active-low.
+gpio=6=op,dh
+gpio=9=op,dh
+gpio=24=op,dl
+gpio=25=op,dl
+gpio=26=op,dl
+
+[cm4]
+otg_mode=1
+
+# Keep CPU frequency scaling, but raise its highest operating point. ISP and
+# H.264 and ISP share a PLL on BCM2711, so keep their requested rates identical.
+# Do not set over_voltage or force_turbo: current firmware retains AVS/DVFS.
+arm_freq=1800
+isp_freq=550
+h264_freq=550
+initial_turbo=10

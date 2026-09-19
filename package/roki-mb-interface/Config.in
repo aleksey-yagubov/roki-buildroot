@@ -1,0 +1,10 @@
+config BR2_PACKAGE_ROKI_MB_INTERFACE
+	bool "roki-mb-interface"
+	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_INSTALL_LIBSTDCPP
+	select BR2_PACKAGE_PYTHON_PYBIND
+	help
+	  Python binding for the Roki motherboard communication library.
+
+	  The package downloads the pinned upstream source and its two required
+	  protocol submodules as source archives without Git history.

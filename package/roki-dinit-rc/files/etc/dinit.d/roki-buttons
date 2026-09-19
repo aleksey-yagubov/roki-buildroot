@@ -1,0 +1,4 @@
+type = process
+command = /usr/bin/python /usr/bin/roki-buttons.py
+restart = true
+depends-on = local.target

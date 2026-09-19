@@ -1,0 +1,6 @@
+config BR2_PACKAGE_ROKI_RPI_FIRMWARE
+	bool "Roki Raspberry Pi boot firmware"
+	depends on BR2_aarch64
+	help
+	  Raspberry Pi 4 boot firmware and only the DT overlays needed by the
+	  Roki CM4 head. The Linux kernel is built separately from source.

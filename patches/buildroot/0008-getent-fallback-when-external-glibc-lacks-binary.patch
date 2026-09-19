@@ -1,0 +1,25 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] getent: fall back to wrapper without external binary
+
+The Arch external glibc toolchain provides a sysroot but does not ship its
+target getent executable.  Use Buildroot's existing lightweight fallback
+script when the external toolchain lacks that binary.
+
+---
+ package/getent/getent.mk | 3 +++
+ 1 file changed, 3 insertions(+)
+
+--- a/package/getent/getent.mk
++++ b/package/getent/getent.mk
+@@ -15,6 +15,9 @@ ifeq ($(BR2_TOOLCHAIN_USES_GLIBC),y)
+ GETENT_LOCATION = $(firstword $(wildcard \
+ 	$(STAGING_DIR)/usr/bin/getent \
+ 	$(STAGING_DIR)/usr/lib/bin/getent))
++ifeq ($(GETENT_LOCATION),)
++GETENT_LOCATION = package/getent/getent
++endif
+ else
+ GETENT_LOCATION = package/getent/getent
+ endif
+-- 
+2.51.0

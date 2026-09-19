@@ -1,0 +1,5 @@
+type = internal
+depends-on = root-rw
+depends-on = hostname
+# The modules unit is retained for future loadable kernel modules, but is
+# intentionally not enabled on the current appliance image.

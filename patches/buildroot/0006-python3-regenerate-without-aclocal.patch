@@ -1,0 +1,33 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] python3: regenerate configure without invoking aclocal
+
+CPython ships its own aclocal.m4, including Python-specific macros.  A
+forced autoreconf runs aclocal first and overwrites that file with a reduced
+one, leaving unexpanded Autoconf macros in configure.  Only configure.ac and
+config.h.in need regeneration after Buildroot's Python patches, so run
+autoheader and autoconf directly and preserve the shipped aclocal.m4.
+
+---
+ package/python3/python3.mk | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+--- a/package/python3/python3.mk
++++ b/package/python3/python3.mk
+@@ -234,8 +234,12 @@
+ 
+ PYTHON3_POST_INSTALL_TARGET_HOOKS += PYTHON3_ENSURE_LIBPYTHON_STRIPPED
+ 
+-PYTHON3_AUTORECONF = YES
+-PYTHON3_AUTORECONF_OPTS = --include=$(HOST_DIR)/share/autoconf-archive
++define PYTHON3_REGENERATE_CONFIGURE
++	cd $(@D) && $(HOST_DIR)/bin/autoheader
++	cd $(@D) && $(HOST_DIR)/bin/autoconf
++endef
++
++PYTHON3_PRE_CONFIGURE_HOOKS += PYTHON3_REGENERATE_CONFIGURE
+ 
+ define PYTHON3_INSTALL_SYMLINK
+ 	ln -fs python3 $(TARGET_DIR)/usr/bin/python
+ endef
+-- 
+2.51.0

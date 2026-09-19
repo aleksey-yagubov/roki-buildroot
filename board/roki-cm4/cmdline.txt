@@ -1,0 +1,1 @@
+root=/dev/mmcblk0p2 rootfstype=ext4 ro fsck.repair=yes rootwait init=/usr/bin/dinit console=null

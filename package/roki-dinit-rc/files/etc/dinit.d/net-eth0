@@ -1,0 +1,5 @@
+type = scripted
+command = /usr/lib/dinit/net-eth0
+restart = false
+depends-on = local.target
+before = network.target

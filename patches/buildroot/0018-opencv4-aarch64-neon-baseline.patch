@@ -1,0 +1,30 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/opencv4: use NEON baseline on AArch64
+
+AArch64 mandates Advanced SIMD (NEON), but BR2_ARM_CPU_HAS_NEON only covers
+the 32-bit ARM configuration. Explicitly enable OpenCV's NEON kernels on
+AArch64. Do not cross-compile dispatch variants for newer Arm extensions that
+are unavailable on Cortex-A72.
+
+--- a/package/opencv4/opencv4.mk
++++ b/package/opencv4/opencv4.mk
+@@ -119,6 +119,18 @@ OPENCV4_CONF_OPTS += \
+ 	-DENABLE_POWERPC=OFF \
+ 	-DENABLE_NEON=$(if $(BR2_ARM_CPU_HAS_NEON),ON,OFF) \
+ 	-DENABLE_VFPV3=OFF
+ 
++# AArch64 mandates NEON. BR2_ARM_CPU_HAS_NEON is a 32-bit ARM capability
++# symbol, so relying on it disables OpenCV's hand-written NEON kernels here.
++# The cross compiler can accept newer extension flags even when the target
++# CPU cannot execute them; Cortex-A72 has neither FP16 arithmetic, dotprod,
++# nor BF16, so build one NEON baseline and no optional dispatch variants.
++ifeq ($(BR2_aarch64),y)
++OPENCV4_CONF_OPTS += \
++	-DENABLE_NEON=ON \
++	-DCPU_BASELINE=NEON \
++	-DCPU_DISPATCH=
++endif
++
+ # LoongArch: OpenCV probes the host compiler for LSX/LASX by trying to
+ # compile a small test program with '-mlsx' / '-mlasx'. With Buildroot's
+ # toolchain this check succeeds even when the target CPU does not have

@@ -1,0 +1,23 @@
+From: ROKI Buildroot <buildroot@roki.local>
+Subject: [PATCH] package/alsa-utils: omit speaker-test WAV samples
+
+speaker-test can generate sine and pink-noise signals itself. The packaged WAV
+voice samples are only used by its optional `-t wav` mode and occupy about
+1.2 MiB in the target image. Keep the speaker-test binary but do not copy the
+sample files to the target.
+
+--- a/package/alsa-utils/alsa-utils.mk
++++ b/package/alsa-utils/alsa-utils.mk
+@@ -69,12 +69,6 @@
+	mkdir -p $(TARGET_DIR)/var/lib/alsa
+	for i in $(ALSA_UTILS_TARGETS_y); do \
+		$(INSTALL) -D -m 755 $(STAGING_DIR)/$$i $(TARGET_DIR)/$$i || exit 1; \
+	done
+-	if [ -x "$(TARGET_DIR)/usr/bin/speaker-test" ]; then \
+-		mkdir -p $(TARGET_DIR)/usr/share/alsa/speaker-test; \
+-		mkdir -p $(TARGET_DIR)/usr/share/sounds/alsa; \
+-		cp -rdpf $(STAGING_DIR)/usr/share/alsa/speaker-test/* $(TARGET_DIR)/usr/share/alsa/speaker-test/; \
+-		cp -rdpf $(STAGING_DIR)/usr/share/sounds/alsa/* $(TARGET_DIR)/usr/share/sounds/alsa/; \
+-	fi
+	if [ -x "$(TARGET_DIR)/usr/sbin/alsactl" ]; then \
+		mkdir -p $(TARGET_DIR)/usr/share/; \

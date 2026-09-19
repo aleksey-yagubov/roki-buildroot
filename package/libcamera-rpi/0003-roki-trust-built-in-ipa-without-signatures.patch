@@ -1,0 +1,115 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] roki: load built-in IPA modules without signatures
+
+The robot image is assembled as one immutable unit and only ships the VC4 IPA
+built together with libcamera. Do not generate IPA signing keys or signatures,
+and do not link libcamera with a crypto backend solely to verify them. Mark
+valid IPA modules as trusted so the VC4 pipeline runs them in-process instead
+of through ipa_proxy IPC.
+
+ELF, module API version and pipeline compatibility validation remain intact.
+
+---
+ src/libcamera/ipa_manager.cpp | 27 +--------------------------
+ src/libcamera/meson.build     | 25 +++----------------------
+ src/meson.build               | 16 +++-------------
+ 3 files changed, 7 insertions(+), 61 deletions(-)
+
+diff --git a/src/meson.build b/src/meson.build
+index 39f3e0c7..c0f6ffcf 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -14,17 +14,7 @@ summary({
+          }, section : 'Paths')
+ 
+ # Module Signing
+-openssl = find_program('openssl', required : false)
+-if openssl.found()
+-    ipa_priv_key = custom_target('ipa-priv-key',
+-                                 output : ['ipa-priv-key.pem'],
+-                                 command : [gen_ipa_priv_key, '@OUTPUT@'])
+-    config_h.set('HAVE_IPA_PUBKEY', 1)
+-    ipa_sign_module = true
+-else
+-    warning('openssl not found, all IPA modules will be isolated')
+-    ipa_sign_module = false
+-endif
++ipa_sign_module = false
+ 
+ # libyuv, used by the Android adaptation layer and the virtual pipeline handler.
+ # Fallback to a subproject if libyuv isn't found, as it's typically not provided
+diff --git a/src/libcamera/meson.build b/src/libcamera/meson.build
+index 7545507e..2ff9d739 100644
+--- a/src/libcamera/meson.build
++++ b/src/libcamera/meson.build
+@@ -87,24 +87,11 @@ libyaml = dependency('yaml-0.1', default_options : [
+     'werror=false',
+ ])
+ 
+-# Use one of gnutls or libcrypto (provided by OpenSSL), trying gnutls first.
+-libcrypto = dependency('gnutls', required : false)
+-if libcrypto.found()
+-    config_h.set('HAVE_GNUTLS', 1)
+-else
+-    libcrypto = dependency('libcrypto', required : false)
+-    if libcrypto.found()
+-        config_h.set('HAVE_CRYPTO', 1)
+-    endif
+-endif
+-
+-if not libcrypto.found()
+-    warning('Neither gnutls nor libcrypto found, all IPA modules will be isolated')
+-    summary({'IPA modules signed with': 'None (modules will run isolated)'},
+-            section : 'Configuration')
+-else
+-    summary({'IPA modules signed with' : libcrypto.name()}, section : 'Configuration')
+-endif
++# The Roki image ships only an IPA built together with libcamera. It is trusted
++# after the normal ELF, API and pipeline compatibility checks.
++libcrypto = dependency('', required : false)
++summary({'IPA module trust': 'built-in Roki image (no signatures)'},
++        section : 'Configuration')
+ 
+ if liblttng.found()
+     tracing_enabled = true
+diff --git a/src/libcamera/ipa_manager.cpp b/src/libcamera/ipa_manager.cpp
+index 3fced0cd..218a3d80 100644
+--- a/src/libcamera/ipa_manager.cpp
++++ b/src/libcamera/ipa_manager.cpp
+@@ -287,33 +287,8 @@ IPAManager::~IPAManager() = default;
+ #endif
+ 
+ bool IPAManager::isSignatureValid([[maybe_unused]] IPAModule *ipa) const
+ {
+-#if HAVE_IPA_PUBKEY
+-	if (forceIsolation_) {
+-		LOG(IPAManager, Debug)
+-			<< "Isolation of IPA module " << ipa->path()
+-			<< " forced through configuration";
+-		return false;
+-	}
+-
+-	File file{ ipa->path() };
+-	if (!file.open(File::OpenModeFlag::ReadOnly))
+-		return false;
+-
+-	Span<uint8_t> data = file.map();
+-	if (data.empty())
+-		return false;
+-
+-	bool valid = pubKey_.verify(data, ipa->signature());
+-
+-	LOG(IPAManager, Debug)
+-		<< "IPA module " << ipa->path() << " signature is "
+-		<< (valid ? "valid" : "not valid");
+-
+-	return valid;
+-#else
+-	return false;
+-#endif
++	return true;
+ }
+ 
+ } /* namespace libcamera */
+-- 
+2.51.0

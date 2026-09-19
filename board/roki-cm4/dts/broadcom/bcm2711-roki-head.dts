@@ -1,0 +1,397 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/* Голова робота Roki-2, основанная на RPi CM4. */
+
+#include "arm/broadcom/bcm2711-rpi-cm4.dts"
+#include <dt-bindings/media/video-interfaces.h>
+
+
+&{/} {
+	model = "Roki-2 robot head v3.1 (CM4)";
+	compatible = "roki,roki-2-head-v3.1", "roki,roki-2-head", "raspberrypi,4-compute-module", "brcm,bcm2711";
+};
+
+&chosen {
+	/delete-property/ stdout-path;
+};
+
+/*
+ * CMA выделяется конфигурацией ядра. Не оставляем linux,cma-default в DT:
+ * VideoCore превращает такой узел в лишний параметр "cma=" командной строки.
+ */
+&rmem {
+	/delete-node/ linux,cma;
+};
+
+/* GPIO14/15 PL011 is the only serial console exposed by this board. */
+&{/aliases} {
+	serial0 = &uart0;
+	/delete-property/ serial1;
+	/* I2C0 is wired directly to GPIO44/45 on this fixed board. */
+	i2c0 = &i2c0if;
+	/delete-property/ i2c10;
+};
+
+/* GPIO BCM2711 и мультиплексирование выводов. */
+&gpio {
+	/* Имена служат только описанием: они не экспортируют, не резервируют и не мультиплексируют GPIO. */
+	gpio-line-names =
+		"board-uart2-tx", "board-uart2-rx", "board-mcp23008-reset", "unused-gpio3",
+		"board-max98357a-sdmode", "unused-gpio5", "userspace-motherboard-reset", "board-lcd-cs",
+		"unused-gpio8", "userspace-bluecoin-reset", "board-lcd-mosi", "board-lcd-sclk",
+		"board-uart5-tx", "board-uart5-rx",
+		"board-bluecoin-uart0-tx", "board-bluecoin-uart0-rx",
+		"unused-gpio16", "board-mcp23008-irq", "board-i2s-bclk", "board-i2s-lrclk",
+		"board-i2s-din", "board-i2s-dout", "board-i2c6-sda", "board-i2c6-scl",
+		"userspace-lcd-backlight", "userspace-lcd-dc", "userspace-lcd-reset", "board-fan-enable",
+		"cm4-internal-rgmii-mdio", "cm4-internal-rgmii-mdc", "cm4-internal-bt-cts", "cm4-internal-bt-rts",
+		"cm4-internal-bt-tx", "cm4-internal-bt-rx",
+		"cm4-internal-wifi-sdio-clk", "cm4-internal-wifi-sdio-cmd", "cm4-internal-wifi-sdio-data0", "cm4-internal-wifi-sdio-data1",
+		"cm4-internal-wifi-sdio-data2", "cm4-internal-wifi-sdio-data3",
+		"cm4-internal-pwm0-or-spi-miso", "cm4-internal-pwm1-or-spi-mosi", "cm4-internal-status-led-gclk", "cm4-internal-boot-spi-cs",
+		"board-i2c0-sda", "board-i2c0-scl",
+		"cm4-internal-rgmii-rxclk", "cm4-internal-rgmii-rxctl", "cm4-internal-rgmii-rxd0", "cm4-internal-rgmii-rxd1",
+		"cm4-internal-rgmii-rxd2", "cm4-internal-rgmii-rxd3", "cm4-internal-rgmii-txclk", "cm4-internal-rgmii-txctl",
+		"cm4-internal-rgmii-txd0", "cm4-internal-rgmii-txd1", "cm4-internal-rgmii-txd2", "cm4-internal-rgmii-txd3";
+
+	roki_uart0_pins: roki-uart0-pins {
+		brcm,pins = <14 15>;
+		brcm,function = <BCM2835_FSEL_ALT0>;
+		brcm,pull = <0 2>;
+	};
+
+	roki_i2s_pins: roki-i2s-pins {
+		brcm,pins = <18 19 20 21>;
+		brcm,function = <BCM2835_FSEL_ALT0>;
+		brcm,pull = <0 0 0 0>;
+	};
+};
+
+/* Отключённые блоки BCM2711 и разъёмы, отсутствующие на этой фиксированной плате. */
+
+/* RPi.GPIO использует это прямое отображение регистров; образ использует libgpiod. */
+&{/soc/gpiomem} {
+	status = "disabled";
+};
+
+/* Путь антенны Wi-Fi CM4, управляемый прошивкой. */
+&ant1 {
+	/delete-property/ output-high;
+	output-low;
+};
+
+&ant2 {
+	/delete-property/ output-low;
+	output-high;
+};
+
+/* Wi-Fi is part of the CM4, so use its upstream board calibration name. */
+&{/soc/mmcnr@7e300000/wifi@1} {
+	brcm,board-type = "raspberrypi,4-compute-module";
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+&bt {
+	status = "disabled";
+};
+
+/* AUX обслуживает только неиспользуемые mini-UART и SPI1/SPI2. */
+&aux {
+	status = "disabled";
+};
+
+/* Это dwc2 usb контроллер, предназначен для работы в режиме device, нам не нужен */
+&usb {
+	status = "disabled";
+};
+
+/* Декодер видео, csi0 порт камеры, фреймбуффер прошивки не нужны. */
+&hevc_dec {
+	status = "disabled";
+};
+
+&csi0 {
+	status = "disabled";
+};
+
+&fb {
+	status = "disabled";
+};
+
+/* HVS - композитор дисплея VC4; у головы нет DRM-конвейера вывода. */
+&hvs {
+	status = "disabled";
+};
+
+/* На плате нет GPIO LED, а LED subsystem в ядре отключена. */
+&leds {
+	status = "disabled";
+};
+
+/* OTP/NVMEM не используется: MAC-адрес Ethernet приходит от firmware. */
+&nvmem_otp {
+	status = "disabled";
+};
+
+&nvmem_cust {
+	status = "disabled";
+};
+
+&nvmem_priv {
+	status = "disabled";
+};
+
+/* UART0 на GPIO_14(TX) GPIO_15(RX) для BlueCoin. */
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&roki_uart0_pins>;
+	dmas = <&dma 12>, <&dma 14>;
+	dma-names = "tx", "rx";
+	status = "okay";
+};
+
+/* UART2 на GPIO_0(TX) GPIO_1(RX) для stm32h743vit, физически есть, но не используется прошивкой stm. */
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
+	dmas = <&dma 28>, <&dma 29>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+/* UART5 на GPIO_12(TX) GPIO_13(RX) для stm32h743vit (называют mothreboard). */
+&uart5 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart5_pins>;
+	dmas = <&dma 21>, <&dma 22>;
+	dma-names = "tx", "rx";
+	status = "okay";
+};
+
+/* USB контроллер rpi cm4 в режиме хоста. */
+&xhci {
+	compatible = "brcm,bcm2711-xhci";
+	status = "okay";
+};
+
+/* I2C0 на GPIO44/45: RTC и камера Arducam Pivariety на CAM1/CSI1. */
+/*
+ * На этой плате единственная шина I2C0 выведена на GPIO44/45. Общий DTS CM4
+ * описывает альтернативные маршруты выводов через i2c-mux-pinctrl; для этой
+ * фиксированной платы он не нужен. Узел оставлен отключенным, поскольку
+ * firmware __overrides__ из базового CM4 DTS ссылаются на его label.
+ */
+&i2c0mux {
+	status = "disabled";
+};
+
+&i2c0if {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c0_gpio44>;
+	clock-frequency = <100000>;
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	rtc@68 {
+		compatible = "maxim,ds3231";
+		reg = <0x68>;
+	};
+
+	arducam_pivariety: camera@c {
+		compatible = "arducam,arducam-pivariety";
+		reg = <0x0c>;
+
+		clocks = <&cam1_clk>;
+		clock-names = "xclk";
+
+		VANA-supply = <&cam1_reg>;
+		VDIG-supply = <&cam_dummy_reg>;
+		VDDL-supply = <&cam_dummy_reg>;
+
+		rotation = <0>;
+		orientation = <2>;
+
+		port {
+		arducam_pivariety_0: endpoint {
+			remote-endpoint = <&csi1_ep>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
+			clock-lanes = <0>;
+				data-lanes = <1 2>;
+				clock-noncontinuous;
+				link-frequencies = /bits/ 64 <493500000>;
+			};
+		};
+	};
+};
+
+&cam1_clk {
+	clock-frequency = <24000000>;
+	status = "okay";
+};
+
+&csi1 {
+	/* Linux 6.18 использует upstream Unicam, а не старый downstream-драйвер. */
+	compatible = "brcm,bcm2835-unicam-upstream";
+	status = "okay";
+
+	port {
+		csi1_ep: endpoint {
+			remote-endpoint = <&arducam_pivariety_0>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
+			clock-lanes = <0>;
+			data-lanes = <1 2>;
+			clock-noncontinuous;
+		};
+	};
+};
+
+/* I2C6 на GPIO22/23: расширитель кнопок MCP23008 и его input-устройство. */
+&i2c6_pins {
+	brcm,pins = <22 23>;
+};
+
+&i2c6 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	mcp23008: gpio@21 {
+		compatible = "microchip,mcp23008";
+		reg = <0x21>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		reset-gpios = <&gpio 2 1>;
+		microchip,irq-active-high;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		interrupt-parent = <&gpio>;
+		interrupts = <17 4>;
+	};
+};
+
+/* GPIO MCP23008 представлены одним именованным input-устройством. */
+&{/} {
+	roki_head_buttons: gpio-keys {
+		compatible = "gpio-keys";
+		label = "roki-head-buttons";
+
+		btn1 {
+			label = "BTN1";
+			linux,code = <0xb7>;
+			gpios = <&mcp23008 6 0>;
+		debounce-interval = <20>;
+		};
+
+		btn2 {
+			label = "BTN2";
+			linux,code = <0xb8>;
+			gpios = <&mcp23008 5 0>;
+		debounce-interval = <20>;
+		};
+
+		btn_rst {
+			label = "BTN_RST";
+			linux,code = <0x74>;
+			gpios = <&mcp23008 4 0>;
+		debounce-interval = <20>;
+		};
+
+		btn3 {
+			label = "BTN3";
+			linux,code = <0xb9>;
+			gpios = <&mcp23008 3 0>;
+		debounce-interval = <20>;
+		};
+
+		btn4 {
+			label = "BTN4";
+			linux,code = <0xba>;
+			gpios = <&mcp23008 2 0>;
+		debounce-interval = <20>;
+		};
+	};
+};
+
+/* SPI0: информационный дисплей ST7789 только на запись, один CS на GPIO7. */
+&spi0_pins {
+	/* ST7789 работает только на запись; GPIO9 остаётся сбросом BlueCoin. */
+	brcm,pins = <10 11>;
+};
+
+&spi0_cs_pins {
+	brcm,pins = <7>;
+};
+
+&spi0 {
+	cs-gpios = <&gpio 7 1>;
+	status = "okay";
+};
+
+/delete-node/ &spidev1;
+
+/* Звук I2S: контроллер PCM BCM2711 и пара усилителей MAX98357A. */
+&i2s {
+	pinctrl-names = "default";
+	pinctrl-0 = <&roki_i2s_pins>;
+	status = "okay";
+};
+
+&sound {
+	compatible = "simple-audio-card";
+	simple-audio-card,format = "i2s";
+	simple-audio-card,name = "MAX98357A";
+	status = "okay";
+
+	simple-audio-card,cpu {
+		sound-dai = <&i2s>;
+	};
+
+	simple-audio-card,codec {
+		sound-dai = <&max98357a_dac>;
+	};
+};
+
+/* I2S-кодек, используемый simple-audio-card выше. */
+&{/} {
+	max98357a_dac: max98357a {
+		/* Левый и правый MAX98357A используют общие I2S и SD_MODE. */
+		compatible = "maxim,max98357a";
+		#sound-dai-cells = <0>;
+		sdmode-gpios = <&gpio 4 0>;
+		/* Ожидание BCLK/LRCLK I2S перед включением усилителей. */
+		sdmode-delay = <5>;
+	};
+};
+
+/* Тепловое управление вентилятором платы. */
+&cpu_thermal {
+	polling-delay = <500>;
+
+	trips {
+		roki_cpu_hot: cpu-hot {
+			temperature = <60000>;
+			hysteresis = <10000>;
+			type = "active";
+		};
+	};
+
+	cooling-maps {
+		roki_fan_map {
+			trip = <&roki_cpu_hot>;
+			cooling-device = <&roki_fan 1 1>;
+		};
+	};
+};
+
+/* Устройство охлаждения для тепловой зоны CPU выше. */
+&{/} {
+	roki_fan: fan {
+		compatible = "gpio-fan";
+		gpios = <&gpio 27 0>;
+		gpio-fan,speed-map = <0 0>, <5000 1>;
+		#cooling-cells = <2>;
+	};
+};

@@ -1,0 +1,26 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] iproute2: disable optional host pkg-config probes
+
+The external Arch toolchain build passes a host pkg-config binary to
+iproute2's configure script. Its optional probes find x86_64 libraries,
+although their target headers and libraries are absent. The Roki image needs
+ip and ss, not those optional integrations.
+
+---
+ package/iproute2/iproute2.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package/iproute2/iproute2.mk b/package/iproute2/iproute2.mk
+index 6bdbed27f0..a0b1f62c5f 100644
+--- a/package/iproute2/iproute2.mk
++++ b/package/iproute2/iproute2.mk
+@@ -48,5 +48,5 @@ endif
+ 
+ define IPROUTE2_CONFIGURE_CMDS
+-	cd $(@D) && $(TARGET_CONFIGURE_OPTS) ./configure \
++	cd $(@D) && $(TARGET_CONFIGURE_OPTS) PKG_CONFIG=/bin/false ./configure \
+ 		$(IPROUTE2_CONFIGURE_OPTS)
+ 	$(IPROUTE2_DISABLE_IPTABLES)
+ endef
+-- 
+2.51.0

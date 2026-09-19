@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# EC[3J also clears terminal scrollback on terminals that support it.
+printf '\033[H\033[2J\033[3J'

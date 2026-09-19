@@ -1,0 +1,4 @@
+type = scripted
+command = /sbin/ip link set up dev lo
+restart = false
+depends-on = pseudofs

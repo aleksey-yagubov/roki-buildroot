@@ -1,0 +1,21 @@
+From: Roki Buildroot <buildroot@roki.local>
+Subject: [PATCH] gstreamer1: build native GLib tools before configuring
+
+GStreamer uses glib-mkenums while configuring and generating sources.  A
+target-only libglib2 dependency exposes the target pkg-config metadata, which
+makes Meson resolve the tool as /usr/bin/glib-mkenums.  Build host-libglib2 as
+well, so Meson uses the native generator from HOST_DIR.
+
+---
+ package/gstreamer1/gstreamer1/gstreamer1.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/package/gstreamer1/gstreamer1/gstreamer1.mk b/package/gstreamer1/gstreamer1/gstreamer1.mk
+index 2a3575cc4b..ff5a455a0c 100644
+--- a/package/gstreamer1/gstreamer1/gstreamer1.mk
++++ b/package/gstreamer1/gstreamer1/gstreamer1.mk
+@@ -37,1 +37,2 @@ GSTREAMER1_DEPENDENCIES = \
++	host-libglib2 \
+ 	libglib2 \
+-- 
+2.51.0

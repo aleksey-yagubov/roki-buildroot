@@ -1,0 +1,71 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] roki: build VC4 IPA only for the fitted Arducam camera
+
+The Roki CM4 head has only the Arducam Pivariety camera. Exclude all upstream
+sensor helpers, their IMX500 parser, autofocus and generic Raspberry Pi tuning
+files. If the Pivariety MCU bridge is removed in the future and the OG02B10
+sensor is connected directly to I2C, add one dedicated OG02B10 helper and its
+tuning file without restoring unrelated camera support.
+
+---
+ src/ipa/rpi/cam_helper/meson.build | 21 ---------------------
+ src/ipa/rpi/controller/meson.build |  1 -
+ src/ipa/rpi/vc4/meson.build        |  2 --
+ 3 files changed, 24 deletions(-)
+
+diff --git a/src/ipa/rpi/cam_helper/meson.build b/src/ipa/rpi/cam_helper/meson.build
+index 79ff190c..d12a8195 100644
+--- a/src/ipa/rpi/cam_helper/meson.build
++++ b/src/ipa/rpi/cam_helper/meson.build
+@@ -3,24 +3,6 @@
+ rpi_ipa_cam_helper_sources = files([
+     'cam_helper.cpp',
+     'cam_helper_arducam.cpp',
+-    'cam_helper_ov5647.cpp',
+-    'cam_helper_imx219.cpp',
+-    'cam_helper_imx283.cpp',
+-    'cam_helper_imx290.cpp',
+-    'cam_helper_imx296.cpp',
+-    'cam_helper_imx355.cpp',
+-    'cam_helper_imx415.cpp',
+-    'cam_helper_imx477.cpp',
+-    'cam_helper_imx500.cpp',
+-    'cam_helper_imx519.cpp',
+-    'cam_helper_imx678.cpp',
+-    'cam_helper_imx708.cpp',
+-    'cam_helper_ov64a40.cpp',
+-    'cam_helper_ov7251.cpp',
+-    'cam_helper_ov9281.cpp',
+-    'cam_helper_vd55g1.cpp',
+-    'cam_helper_vd56g3.cpp',
+-    'md_parser_smia.cpp',
+ ])
+ 
+ rpi_ipa_cam_helper_includes = [
+@@ -30,2 +12,0 @@
+-subdir('imx500_tensor_parser')
+-
+diff --git a/src/ipa/rpi/controller/meson.build b/src/ipa/rpi/controller/meson.build
+index 749d4a8b..7ebef108 100644
+--- a/src/ipa/rpi/controller/meson.build
++++ b/src/ipa/rpi/controller/meson.build
+@@ -5,7 +5,6 @@ rpi_ipa_controller_sources = files([
+     'controller.cpp',
+     'device_status.cpp',
+     'histogram.cpp',
+-    'rpi/af.cpp',
+     'rpi/agc.cpp',
+     'rpi/agc_channel.cpp',
+     'rpi/alsc.cpp',
+diff --git a/src/ipa/rpi/vc4/meson.build b/src/ipa/rpi/vc4/meson.build
+index 2c57139d..70803fcd 100644
+--- a/src/ipa/rpi/vc4/meson.build
++++ b/src/ipa/rpi/vc4/meson.build
+@@ -41,5 +41,3 @@
+ endif
+ 
+-subdir('data')
+-
+ ipa_names += ipa_name
+-- 
+2.51.0

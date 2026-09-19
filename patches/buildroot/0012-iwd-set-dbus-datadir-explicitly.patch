@@ -1,0 +1,25 @@
+From: Roki Buildroot <build@roki.local>
+Subject: [PATCH] package/iwd: set D-Bus data directory explicitly
+
+The external-toolchain pkg-config frontend correctly sysroot-prefixes the
+standard datadir variable. iwd uses that variable as a destination path while
+installing D-Bus policy, so pass the target path explicitly instead.
+
+---
+ package/iwd/iwd.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/package/iwd/iwd.mk b/package/iwd/iwd.mk
+index 53b3f52527..bdd4e247d0 100644
+--- a/package/iwd/iwd.mk
++++ b/package/iwd/iwd.mk
+@@ -16,6 +16,7 @@ IWD_LICENSE_FILES = COPYING
+ IWD_CONF_OPTS = \
+ 	--disable-manual-pages \
+ 	--enable-external-ell \
++	--with-dbus-datadir=/usr/share \
+ 	--enable-dbus-policy
+ IWD_DEPENDENCIES = dbus ell
+ 
+-- 
+2.47.3

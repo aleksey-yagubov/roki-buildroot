@@ -1,0 +1,73 @@
+--- a/st7789/__init__.py
++++ b/st7789/__init__.py
+@@ -18,11 +18,11 @@
+ # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ # THE SOFTWARE.
++import glob
+ import numbers
+ import time
+ 
+ import gpiod
+-import gpiodevice
+ import numpy
+ import spidev
+ from gpiod.line import Direction, Value
+@@ -31,6 +31,25 @@
+ 
+ OUTL = gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
+ 
++
++def get_named_pin(name, label, settings):
++    """Request a GPIO line identified by its Device Tree line name."""
++    for path in sorted(glob.glob("/dev/gpiochip*")):
++        if not gpiod.is_gpiochip_device(path):
++            continue
++        chip = gpiod.Chip(path)
++        try:
++            offset = chip.line_offset_from_id(name)
++        except OSError:
++            chip.close()
++            continue
++        lines = chip.request_lines(
++            consumer=f"st7789-{label}", config={offset: settings}
++        )
++        return lines, offset
++    raise RuntimeError(f"GPIO line {name!r} was not found")
++
++
+ BG_SPI_CS_BACK = 0
+ BG_SPI_CS_FRONT = 1
+ 
+@@ -133,8 +152,6 @@
+                 f"Invalid rotation {rotation} for {width}x{height} resolution"
+             )
+ 
+-        gpiodevice.friendly_errors = True
+-
+         self._spi = spidev.SpiDev(port, cs)
+         self._spi.mode = 0
+         self._spi.lsbfirst = False
+@@ -151,18 +168,19 @@
+         self._offset_top = offset_top
+ 
+         # Set DC as output.
+-        self._dc = gpiodevice.get_pin(dc, "st7789-dc", OUTL)
++        self._dc = get_named_pin(dc, "dc", OUTL)
+ 
+         # Setup backlight as output (if provided).
+         if backlight is not None:
+-            self._bl = gpiodevice.get_pin(backlight, "st7789-bl", OUTL)
++            self._bl = get_named_pin(backlight, "bl", OUTL)
+             self.set_pin(self._bl, False)
+             time.sleep(0.1)
+             self.set_pin(self._bl, True)
+ 
+         # Setup reset as output (if provided).
+         if rst is not None:
+-            self._rst = gpiodevice.get_pin(rst, "st7789-rst", OUTL)
++            self._rst = get_named_pin(rst, "rst", OUTL)
++            self.reset()
+ 
+         self._init()
+ 

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_ST7789_ROKI
+	bool "python-st7789-roki"
+	select BR2_PACKAGE_PYTHON_GPIOD
+	select BR2_PACKAGE_PYTHON_NUMPY
+	select BR2_PACKAGE_PYTHON_SPIDEV
+	help
+	  Pimoroni ST7789 Python driver using spidev and libgpiod.
